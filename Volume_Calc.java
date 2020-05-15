@@ -69,12 +69,10 @@ public class Volume_Calc implements PlugIn {
 		for (int c=0; c<cellnb; c++) {
 			rt.incrementCounter();
 			for (int l=0; l<nt; l++) {
-				//IJ.log(""+ results[c][l]);
 				rt.addValue("T " + l, results[c][l]);
 			}
 		}
 		
 		rt.show("Results");
-		//in.setPosition(1, nz, nt);
-		//in.show();
+		
 }}
