@@ -1,6 +1,6 @@
-import java.awt.Point;
 import java.awt.Polygon;
 import java.util.ArrayList;
+
 
 import ij.IJ;
 import ij.ImagePlus;
@@ -11,7 +11,13 @@ import ij.process.ImageProcessor;
 
 
 public class Region_Growing implements PlugIn {
+	
+	
 	public void run(String arg) {
+		
+		// --- ----------- ---
+		// --->INPUT IMAGE<---
+		// --- ----------- ---
 		
 		// Duplicate input image
 		ImagePlus in = IJ.getImage();
@@ -20,8 +26,12 @@ public class Region_Growing implements PlugIn {
 		int nx = in.getWidth();
 		int ny = in.getHeight();
 		int nt = in.getNFrames();
-		int nz = in.getSlice();
+		int nz = in.getNSlices();
 		int b = in.getBitDepth();
+		
+		// --- ------------ ---
+		// --->INPUT DIALOG<---
+		// --- ------------ ---
 		
 		// Generate Dialog for Region Growing parameter input
 		GenericDialog dlg = new GenericDialog("Region Growing");
@@ -44,8 +54,12 @@ public class Region_Growing implements PlugIn {
 		
 		IJ.log("Chosen parameters: tol=" + Double.toString(tol) + ", T=" + Double.toString(T) + ", d=" + Double.toString(distmax));;;
 		
+		// --- ------------ ---
+		// --->OUTPUT IMAGE<---
+		// --- ------------ ---
+		
 		// Create output segmentation image
-		ImagePlus areas = IJ.createImage("Regions", nx, ny, 1, b);
+		ImagePlus areas = IJ.createImage("Regions", nx, ny, nz, b);
 		areas.show();
 		
 		Roi mroi = in.getRoi();
@@ -59,74 +73,98 @@ public class Region_Growing implements PlugIn {
 		// Number of initial regions
 		int nri = up.xpoints.length;
 		
-		// Loop over all z
-//		for (int z = 0; z < nz; z++) {
+		IJ.log("Retrieving " + Integer.toString(nri) + " selected seeds.");
 		
-			IJ.log("Retrieving " + Integer.toString(nri) + " selected seeds.");
-			
-//			in.setPosition(1, 1, z + 1);
-//			areas.setPositionWithoutUpdate(1, z + 1, 1);
-			ImageProcessor imp = in.getProcessor();
-			ImageProcessor oup = areas.getProcessor();
-			
-			ArrayList<Region2D> regions = new ArrayList<Region2D>();
-			
-			for (int i = 0; i < nri; i++){
-				
-				Point seed = new Point(up.xpoints[i], up.ypoints[i]);
-				
-				IJ.log("Seed added: " + seed.toString());
-				
-				Region2D region = new Region2D(seed, imp.getPixelValue((int) seed.getX(), (int) seed.getY()));
-				regions.add(region);
-				
-				oup.putPixelValue((int) seed.getX(), (int) seed.getY(), 180);
-				
-				IJ.log("Region created with seed: " + region.seed.toString());
-				
-			}
+		int slice = in.getSlice();
+		int frame = in.getFrame();
 		
-			// While loop for number of iterations
-			int iter = 0;
-			while (iter < itermax) {
+		IJ.log("Current slice is: " + slice);
+		IJ.log("Current frame is: " + frame);
+		
+		areas.setPositionWithoutUpdate(1, slice, 1);
+		
+		ImageProcessor imp = in.getProcessor();
+		ImageProcessor oup = areas.getProcessor();
+		
+		ArrayList<Region3D> regions = new ArrayList<Region3D>();
+		
+		for (int i = 0; i < nri; i++){
+			
+			Point3D seed = new Point3D(up.xpoints[i], up.ypoints[i], slice, imp.getPixelValue(up.xpoints[i], up.ypoints[i]));
+			
+			IJ.log("Seed added: " + seed.toString());
+			
+			Region3D region = new Region3D(seed);
+			regions.add(region);
+			
+			oup.putPixelValue((int) seed.getX(), (int) seed.getY(), 55 + (200.0 / nri) * i);
+			
+			IJ.log("Region created with seed: " + region.seed.toString());
+			
+		}
+		
+		// --- ------------------ ---
+		// --->REGION CALCULATION<---
+		// --- ------------------ ---
+	
+		// While loop for number of iterations
+		int iter = 0;
+		while (iter < itermax) {
+			
+			boolean nothingAdded = true;
+			
+			IJ.log("Iteration " + Integer.toString(iter));
+			
+			// Loop over each Region
+			for (int i = 0; i < regions.size(); i++) {
 				
-				boolean nothingAdded = true;
+				IJ.log("Looping over region " + Integer.toString(i));
 				
-				IJ.log("Iteration " + Integer.toString(iter));
+				Region3D region = regions.get(i);
+				int s = region.size();
 				
-				// Loop over each Region
-				for (int i = 0; i < regions.size(); i++) {
+				// Iterate over all points in region
+				for (int p = 0; p < s; p++) {
 					
-					IJ.log("Looping over region " + Integer.toString(i));
+//					IJ.log("Looping over region " + Integer.toString(i) + " point " + region.getPoint(p).toString());
 					
-					Region2D region = regions.get(i);
-					int s = region.size();
-					
-					// Iterate over all points in region
-					for (int p = 0; p < s; p++) {
+					int x = (int) region.getPoint(p).getX();
+					int y = (int) region.getPoint(p).getY();
+					int z = (int) region.getPoint(p).getZ();
+				
+					// Get 26-connected neighbors
+					// Loop over z first to optimize processor access
+					for (int o = - 1; o <= 1; o++) {
 						
-	//					IJ.log("Looping over region " + Integer.toString(i) + " point " + region.getPoint(p).toString());
+						if (z + o < 6 || z + o > 16)
+							continue;
 						
-						int x = (int) region.getPoint(p).getX();
-						int y = (int) region.getPoint(p).getY();
-					
-						// Get 8-connected neighbors
+						in.setPositionWithoutUpdate(1, z + o, frame);
+						areas.setPositionWithoutUpdate(1, z + o, 1);
+						
+						ImageProcessor timp = in.getProcessor();
+						ImageProcessor toup = areas.getProcessor();
+						
 						for (int m = - 1; m <= 1; m++)
 						for (int n = - 1; n <= 1; n++) {
 							
-	//						IJ.log("Getting 8-connected neighbors.");
+	//						IJ.log("Getting 26-connected neighbors.");
 							
-							if (region.overlaps(new Point(x + m, y + n)))
+							
+							// Using value = 0.0 as is it not used in Point3D::equals for comparison
+							if (region.overlaps(new Point3D(x + m, y + n, z + o, 0.0)))
 								continue;
 							
 							// get comparison pixel
-							double pixel = imp.getPixelValue(x + m, y + n);
+							double pixel = timp.getPixelValue(x + m, y + n);
 							
+							// Check that newly evaluated pixel does not overlap with others
 							boolean overlaps = false;
 							
-							for (int o = 0; o < regions.size(); o++) {
-								if (o != i) {
-									if (regions.get(o).overlaps(new Point(x, y))) {
+							for (int r = 0; r < regions.size(); r++) {
+								if (r != i) {
+									// Using value = 0.0 as is it not used in Point3D::equals for comparison
+									if (regions.get(r).overlaps(new Point3D(x, y, z, 0.0))) {
 										overlaps = true;
 										continue;
 									}	
@@ -139,43 +177,44 @@ public class Region_Growing implements PlugIn {
 	//						IJ.log("Threshold: " + String.valueOf(pixel < T));
 	//						IJ.log("Distance: " + String.valueOf(region.getDistanceToSeed(new Point(x, y)) < distmax));
 							
-//							double dtocenter = Math.abs(z - nz / 2.0); 
-							
 							
 							/* Test conditions
 							 * (1) p is inside the image
+							 *  |— Not sure how this is handled TODO
 							 * (2) p doesn't overlap with another region
 							 * (3) | f(p) - region_mean | < tol
 							 * (4) f(p) < T
 							 * (5) dist(seed, p) < distmin 
+							 * 	|— Using value = 0.0 as is it not used in Point3D::equals for comparison
 							 */
+							
 							if (!overlaps &&
 								Math.abs(pixel - region.getMean()) < tol &&
 								pixel < T &&
-								region.getDistanceToSeed(new Point(x, y)) < distmax /* / dtocenter */) {
+								region.getDistanceToSeed(new Point3D(x, y, z, 0.0)) < distmax) {
 								
 								nothingAdded = false;
 								
-								Point addition = new Point(x + m, y + n); 
+								Point3D addition = new Point3D(x + m, y + n, z + o, pixel); 
 								
 								IJ.log("Point: " + addition.toString() + " added w/ value " + pixel);
 								
-								region.addPoint(addition, pixel);
+								region.addPoint(addition);
 								
 								oup.putPixelValue(x + m, y + n, 55 + (200.0 / regions.size()) * i);
 							}
 						}
-					}	
-					
-				}
-				
-				if (nothingAdded)
-					iter = 10000;
-				
-				iter++;
+					}
+				}	
 				
 			}
-//		}
+			
+			if (nothingAdded)
+				iter = 10000;
+			
+			iter++;
+			
+		}
 		
 	}
 	
