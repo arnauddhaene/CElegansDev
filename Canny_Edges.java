@@ -1,184 +1,515 @@
-import ij.IJ;
-import ij.ImagePlus;
-import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
-import ij.plugin.filter.GaussianBlur;
-import ij.process.ImageProcessor;
+import ij.*;
+import ij.process.*;
+import ij.gui.GenericDialog;
+import ij.gui.Roi;
+import ij.IJ;
+
+import java.util.Arrays;
+import ij.ImageStack;
+import ij.ImagePlus;
+
+
+/**
+ * <p>This is a plugin version of Tom Gibara's implementation of the Canny edge detection algorithm in Java, available at: </p>
+ *     http://www.tomgibara.com/computer-vision/canny-edge-detector
+ *
+ * <p><em>This software has been released into the public domain.
+ * <strong>Please read the notes in this source file for additional information.
+ * </strong></em></p>
+ * 
+ * <p>This class provides a configurable implementation of the Canny edge
+ * detection algorithm. This classic algorithm has a number of shortcomings,
+ * but remains an effective tool in many scenarios. <em>This class is designed
+ * for single threaded use only.</em></p>
+ * 
+ * <p>For a more complete understanding of this edge detector's parameters
+ * consult an explanation of the algorithm.</p>
+ * 
+ * @author Tom Gibara
+ *
+ */
 
 public class Canny_Edges implements PlugIn {
 
+	// statics
+	
+	private final static float GAUSSIAN_CUT_OFF = 0.005f;
+	private final static float MAGNITUDE_SCALE = 100F;
+	private final static float MAGNITUDE_LIMIT = 1000F;
+	private final static int MAGNITUDE_MAX = (int) (MAGNITUDE_SCALE * MAGNITUDE_LIMIT);
+
+	// fields
+	
+	private int height;
+	private int width;
+	private int picsize;
+	private int[] data;
+	private int[] magnitude;
+	private ImagePlus sourceImage;
+	
+	private static float sGaussianKernelRadius = 2f;
+	private static float sLowThreshold = 2.5f;
+	private static float sHighThreshold = 7.5f;
+
+	private float gaussianKernelRadius = 2f;
+	private float lowThreshold = 2.5f;
+	private float highThreshold = 7.5f;
+	private int gaussianKernelWidth = 16;
+	private boolean contrastNormalized;
+
+	private float[] xConv;
+	private float[] yConv;
+	private float[] xGradient;
+	private float[] yGradient;
+
 	public void run(String arg) {
+		ImagePlus in = IJ.getImage().duplicate();
+		// TO DO : create substacks in a loop
+		int nx = in.getWidth();
+		 int ny = in.getHeight();
+		 int nt = in.getNFrames();
+		 int nz = in.getNSlices();
+		 int bitdepth = in.getBitDepth();
+		if (!showDialog())
+			return;
+		ImageStack output = new ImageStack();
+		for (int t=0; t<nt; t++) {
+			for (int z=0; z<nz; z++) {
+				ImagePlus sourceImage = makesubstack(in,z,t);					
+				//Undo.setup(Undo.TYPE_CONVERSION, sourceImage);
+				process(sourceImage);
+				
+				
+				ImageProcessor ip = new FloatProcessor(sourceImage.getWidth(), sourceImage.getHeight(), data);
+				ip = ip.convertToByte(false);
+				
+				sourceImage.setProcessor(ip);
+				output.addSlice(ip);
+				IJ.log("z="+z+"  t="+t);
+				
+				
+				
+			}
+		}
+		ImagePlus out = new ImagePlus();
 		
-		// Noise reduction for a single image
-			ImagePlus in = IJ.getImage().duplicate();
-			int nx = in.getWidth();
-			int ny = in.getHeight();
-			int nt = in.getNFrames();
-			int nz = in.getSlice();
-			GenericDialog dlg = new GenericDialog("Canny Edge");
-			dlg.addNumericField("Gaussian Denoising", 1.5, 1);
-			dlg.addNumericField ("X gradient sigma", 0.7, 1);
-			dlg.addNumericField ("Y gradient sigma", 0.7, 1);
-			dlg.showDialog();
-			if (dlg.wasCanceled()) return;
-			double sigma = dlg.getNextNumber();
-			double sigmax = dlg.getNextNumber();
-			double sigmay = dlg.getNextNumber();
-			
-			GaussianBlur gf = new GaussianBlur();
-			
-			for (int t = 0; t < nt; t++) {
-				for (int z = 0; z < nz; z++) {
-					in.setPosition(1, z+1,  t + 1);
-					ImageProcessor ip = in.getProcessor();
-					gf.blurGaussian(ip, sigma, sigma, 0.001);
+		out.setStack("Edges", output);
+		out.show();
+		
+	}
+	
+	public ImagePlus process(ImagePlus imp) {
+		sourceImage = imp;
+		process();
+		ImageProcessor ip = new FloatProcessor(imp.getWidth(), imp.getHeight(), data);
+		ip = ip.convertToByte(false);
+		return new ImagePlus("Edges_"+imp.getTitle(), ip);
+	}
+
+	private boolean showDialog() {
+		if (!IJ.isMacro()) {
+			gaussianKernelRadius = sGaussianKernelRadius;
+			lowThreshold = sLowThreshold;
+			highThreshold = sHighThreshold;
+		}
+		GenericDialog gd = new GenericDialog("Canny Edge Detector");
+		gd.addNumericField("Gaussian kernel radius:", gaussianKernelRadius, 1);
+		gd.addNumericField("Low threshold:", lowThreshold, 1);
+		gd.addNumericField("High threshold:", highThreshold, 1);
+		//gd.addNumericField("Gaussian Kernel width:", gaussianKernelWidth, 0);
+		gd.addCheckbox("Normalize contrast ", contrastNormalized);
+		gd.showDialog();
+		if (gd.wasCanceled())
+			return false;
+		gaussianKernelRadius = (float)gd.getNextNumber();
+		if (gaussianKernelRadius<0.1f)
+			gaussianKernelRadius = 0.1f;
+		lowThreshold = (float)gd.getNextNumber();
+		if (lowThreshold<0.1f)
+			lowThreshold = 0.1f;
+		highThreshold = (float)gd.getNextNumber();
+		if (highThreshold<0.1f)
+			highThreshold = 0.1f;
+		//gaussianKernelWidth = (int)gd.getNextNumber();
+		contrastNormalized = gd.getNextBoolean();
+		if (!IJ.isMacro()) {
+			sGaussianKernelRadius = gaussianKernelRadius;
+			sLowThreshold = lowThreshold;
+			sHighThreshold = highThreshold;
+		}
+		return true;
+	}
+	
+	/**
+	 * Sets the low threshold for hysteresis. Suitable values for this parameter
+	 * must be determined experimentally for each application. It is nonsensical
+	 * (though not prohibited) for this value to exceed the high threshold value.
+	 * 
+	 * @param threshold a low hysteresis threshold
+	 */
+	public void setLowThreshold(float threshold) {
+		if (threshold < 0) throw new IllegalArgumentException();
+		lowThreshold = threshold;
+	}
+
+	/**
+	 * Sets the high threshold for hysteresis. Suitable values for this
+	 * parameter must be determined experimentally for each application. It is
+	 * nonsensical (though not prohibited) for this value to be less than the
+	 * low threshold value.
+	 * 
+	 * @param threshold a high hysteresis threshold
+	 */
+	public void setHighThreshold(float threshold) {
+		if (threshold < 0) throw new IllegalArgumentException();
+		highThreshold = threshold;
+	}
+
+	/**
+	 * The number of pixels across which the Gaussian kernel is applied.
+	 * This implementation will reduce the radius if the contribution of pixel
+	 * values is deemed negligable, so this is actually a maximum radius.
+	 * 
+	 * @param gaussianKernelWidth a radius for the convolution operation in
+	 * pixels, at least 2.
+	 */
+	public void setGaussianKernelWidth(int gaussianKernelWidth) {
+		if (gaussianKernelWidth < 2) throw new IllegalArgumentException();
+		this.gaussianKernelWidth = gaussianKernelWidth;
+	}
+
+	/**
+	 * Sets the radius of the Gaussian convolution kernel used to smooth the
+	 * source image prior to gradient calculation.
+	 * 
+	 * @param gaussianKernelRadius a Gaussian kernel radius in pixels, must exceed 0.1f.
+	 */
+	public void setGaussianKernelRadius(float gaussianKernelRadius) {
+		if (gaussianKernelRadius < 0.1f) throw new IllegalArgumentException();
+		this.gaussianKernelRadius = gaussianKernelRadius;
+	}
+	
+	/**
+	 * Sets whether the contrast is normalized
+	 * @param contrastNormalized true if the contrast should be normalized,
+	 * false otherwise
+	 */
+	public void setContrastNormalized(boolean contrastNormalized) {
+		this.contrastNormalized = contrastNormalized;
+	}
+
+	public void process() {
+		width = sourceImage.getWidth();
+		height = sourceImage.getHeight();
+		picsize = width * height;
+		initArrays();
+		readLuminance();
+		if (contrastNormalized) normalizeContrast();
+		computeGradients(gaussianKernelRadius, gaussianKernelWidth);
+		int low = Math.round(lowThreshold * MAGNITUDE_SCALE);
+		int high = Math.round( highThreshold * MAGNITUDE_SCALE);
+		performHysteresis(low, high);
+		thresholdEdges();
+	}
+ 
+	// private utility methods
+	
+	private void initArrays() {
+		if (data == null || picsize != data.length) {
+			data = new int[picsize];
+			magnitude = new int[picsize];
+
+			xConv = new float[picsize];
+			yConv = new float[picsize];
+			xGradient = new float[picsize];
+			yGradient = new float[picsize];
+		}
+	}
+	
+	//NOTE: The elements of the method below (specifically the technique for
+	//non-maximal suppression and the technique for gradient computation)
+	//are derived from an implementation posted in the following forum (with the
+	//clear intent of others using the code):
+	//  http://forum.java.sun.com/thread.jspa?threadID=546211&start=45&tstart=0
+	//My code effectively mimics the algorithm exhibited above.
+	//Since I don't know the providence of the code that was posted it is a
+	//possibility (though I think a very remote one) that this code violates
+	//someone's intellectual property rights. If this concerns you feel free to
+	//contact me for an alternative, though less efficient, implementation.
+	
+	private void computeGradients(float kernelRadius, int kernelWidth) {
+		
+		//generate the gaussian convolution masks
+		float kernel[] = new float[kernelWidth];
+		float diffKernel[] = new float[kernelWidth];
+		int kwidth;
+		for (kwidth = 0; kwidth < kernelWidth; kwidth++) {
+			float g1 = gaussian(kwidth, kernelRadius);
+			if (g1 <= GAUSSIAN_CUT_OFF && kwidth >= 2) break;
+			float g2 = gaussian(kwidth - 0.5f, kernelRadius);
+			float g3 = gaussian(kwidth + 0.5f, kernelRadius);
+			kernel[kwidth] = (g1 + g2 + g3) / 3f / (2f * (float) Math.PI * kernelRadius * kernelRadius);
+			diffKernel[kwidth] = g3 - g2;
+		}
+
+		int initX = kwidth - 1;
+		int maxX = width - (kwidth - 1);
+		int initY = width * (kwidth - 1);
+		int maxY = width * (height - (kwidth - 1));
+		
+		//perform convolution in x and y directions
+		for (int x = initX; x < maxX; x++) {
+			for (int y = initY; y < maxY; y += width) {
+				int index = x + y;
+				float sumX = data[index] * kernel[0];
+				float sumY = sumX;
+				int xOffset = 1;
+				int yOffset = width;
+				for(; xOffset < kwidth ;) {
+					sumY += kernel[xOffset] * (data[index - yOffset] + data[index + yOffset]);
+					sumX += kernel[xOffset] * (data[index - xOffset] + data[index + xOffset]);
+					yOffset += width;
+					xOffset++;
+				}
+				
+				yConv[index] = sumY;
+				xConv[index] = sumX;
+			}
+ 
+		}
+ 
+		for (int x = initX; x < maxX; x++) {
+			for (int y = initY; y < maxY; y += width) {
+				float sum = 0f;
+				int index = x + y;
+				for (int i = 1; i < kwidth; i++)
+					sum += diffKernel[i] * (yConv[index - i] - yConv[index + i]);
+ 
+				xGradient[index] = sum;
+			}
+ 
+		}
+
+		for (int x = kwidth; x < width - kwidth; x++) {
+			for (int y = initY; y < maxY; y += width) {
+				float sum = 0.0f;
+				int index = x + y;
+				int yOffset = width;
+				for (int i = 1; i < kwidth; i++) {
+					sum += diffKernel[i] * (xConv[index - yOffset] - xConv[index + yOffset]);
+					yOffset += width;
+				}
+ 
+				yGradient[index] = sum;
+			}
+ 
+		}
+
+ 
+		initX = kwidth;
+		maxX = width - kwidth;
+		initY = width * kwidth;
+		maxY = width * (height - kwidth);
+		for (int x = initX; x < maxX; x++) {
+			for (int y = initY; y < maxY; y += width) {
+				int index = x + y;
+				int indexN = index - width;
+				int indexS = index + width;
+				int indexW = index - 1;
+				int indexE = index + 1;
+				int indexNW = indexN - 1;
+				int indexNE = indexN + 1;
+				int indexSW = indexS - 1;
+				int indexSE = indexS + 1;
+				
+				float xGrad = xGradient[index];
+				float yGrad = yGradient[index];
+				float gradMag = hypot(xGrad, yGrad);
+
+				//perform non-maximal supression
+				float nMag = hypot(xGradient[indexN], yGradient[indexN]);
+				float sMag = hypot(xGradient[indexS], yGradient[indexS]);
+				float wMag = hypot(xGradient[indexW], yGradient[indexW]);
+				float eMag = hypot(xGradient[indexE], yGradient[indexE]);
+				float neMag = hypot(xGradient[indexNE], yGradient[indexNE]);
+				float seMag = hypot(xGradient[indexSE], yGradient[indexSE]);
+				float swMag = hypot(xGradient[indexSW], yGradient[indexSW]);
+				float nwMag = hypot(xGradient[indexNW], yGradient[indexNW]);
+				float tmp;
+				/*
+				 * An explanation of what's happening here, for those who want
+				 * to understand the source: This performs the "non-maximal
+				 * supression" phase of the Canny edge detection in which we
+				 * need to compare the gradient magnitude to that in the
+				 * direction of the gradient; only if the value is a local
+				 * maximum do we consider the point as an edge candidate.
+				 * 
+				 * We need to break the comparison into a number of different
+				 * cases depending on the gradient direction so that the
+				 * appropriate values can be used. To avoid computing the
+				 * gradient direction, we use two simple comparisons: first we
+				 * check that the partial derivatives have the same sign (1)
+				 * and then we check which is larger (2). As a consequence, we
+				 * have reduced the problem to one of four identical cases that
+				 * each test the central gradient magnitude against the values at
+				 * two points with 'identical support'; what this means is that
+				 * the geometry required to accurately interpolate the magnitude
+				 * of gradient function at those points has an identical
+				 * geometry (upto right-angled-rotation/reflection).
+				 * 
+				 * When comparing the central gradient to the two interpolated
+				 * values, we avoid performing any divisions by multiplying both
+				 * sides of each inequality by the greater of the two partial
+				 * derivatives. The common comparand is stored in a temporary
+				 * variable (3) and reused in the mirror case (4).
+				 * 
+				 */
+				if (xGrad * yGrad <= (float) 0 /*(1)*/
+					? Math.abs(xGrad) >= Math.abs(yGrad) /*(2)*/
+						? (tmp = Math.abs(xGrad * gradMag)) >= Math.abs(yGrad * neMag - (xGrad + yGrad) * eMag) /*(3)*/
+							&& tmp > Math.abs(yGrad * swMag - (xGrad + yGrad) * wMag) /*(4)*/
+						: (tmp = Math.abs(yGrad * gradMag)) >= Math.abs(xGrad * neMag - (yGrad + xGrad) * nMag) /*(3)*/
+							&& tmp > Math.abs(xGrad * swMag - (yGrad + xGrad) * sMag) /*(4)*/
+					: Math.abs(xGrad) >= Math.abs(yGrad) /*(2)*/
+						? (tmp = Math.abs(xGrad * gradMag)) >= Math.abs(yGrad * seMag + (xGrad - yGrad) * eMag) /*(3)*/
+							&& tmp > Math.abs(yGrad * nwMag + (xGrad - yGrad) * wMag) /*(4)*/
+						: (tmp = Math.abs(yGrad * gradMag)) >= Math.abs(xGrad * seMag + (yGrad - xGrad) * sMag) /*(3)*/
+							&& tmp > Math.abs(xGrad * nwMag + (yGrad - xGrad) * nMag) /*(4)*/
+					) {
+					magnitude[index] = gradMag >= MAGNITUDE_LIMIT ? MAGNITUDE_MAX : (int) (MAGNITUDE_SCALE * gradMag);
+					//NOTE: The orientation of the edge is not employed by this
+					//implementation. It is a simple matter to compute it at
+					//this point as: Math.atan2(yGrad, xGrad);
+				} else {
+					magnitude[index] = 0;
 				}
 			}
-			in.setPosition(1, 1, 1);
-			//in.show();
+		}
+	}
+ 
+	//NOTE: It is quite feasible to replace the implementation of this method
+	//with one which only loosely approximates the hypot function. I've tested
+	//simple approximations such as Math.abs(x) + Math.abs(y) and they work fine.
+	private float hypot(float x, float y) {
+		return (float) Math.hypot(x, y);
+	}
+ 
+	private float gaussian(float x, float sigma) {
+		return (float) Math.exp(-(x * x) / (2f * sigma * sigma));
+	}
+ 
+	private void performHysteresis(int low, int high) {
+		//NOTE: this implementation reuses the data array to store both
+		//luminance data from the image, and edge intensity from the processing.
+		//This is done for memory efficiency, other implementations may wish
+		//to separate these functions.
+		Arrays.fill(data, 0);
+ 
+		int offset = 0;
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				if (data[offset] == 0 && magnitude[offset] >= high) {
+					follow(x, y, offset, low);
+				}
+				offset++;
+			}
+		}
+ 	}
+ 
+	private void follow(int x1, int y1, int i1, int threshold) {
+		int x0 = x1 == 0 ? x1 : x1 - 1;
+		int x2 = x1 == width - 1 ? x1 : x1 + 1;
+		int y0 = y1 == 0 ? y1 : y1 - 1;
+		int y2 = y1 == height -1 ? y1 : y1 + 1;
+		
+		data[i1] = magnitude[i1];
+		for (int x = x0; x <= x2; x++) {
+			for (int y = y0; y <= y2; y++) {
+				int i2 = x + y * width;
+				if ((y != y1 || x != x1)
+					&& data[i2] == 0 
+					&& magnitude[i2] >= threshold) {
+					follow(x, y, i2, threshold);
+					return;
+				}
+			}
+		}
+	}
+
+	private void thresholdEdges() {
+		for (int i = 0; i < picsize; i++) {
+			data[i] = data[i] > 0 ? 255 : 0;
+			//data[i] = data[i] > 0 ? -1 : 0xff000000;
+		}
+	}
+	
+	private int luminance(float r, float g, float b) {
+		//return Math.round(0.333f * r + 0.333f * g + 0.333f * b);
+		return Math.round(0.299f * r + 0.587f * g + 0.114f * b);
+	}
+	
+	private void readLuminance() {
+		ImageProcessor ip = sourceImage.getProcessor();
+		ip = ip.convertToByte(true);
+		for (int i=0; i<ip.getPixelCount(); i++)
+			data[i] = ip.get(i);
+	}
+ 
+	private void normalizeContrast() {
+		int[] histogram = new int[256];
+		for (int i = 0; i < data.length; i++) {
+			histogram[data[i]]++;
+		}
+		int[] remap = new int[256];
+		int sum = 0;
+		int j = 0;
+		for (int i = 0; i < histogram.length; i++) {
+			sum += histogram[i];
+			int target = sum*255/picsize;
+			for (int k = j+1; k <=target; k++) {
+				remap[k] = i;
+			}
+			j = target;
+		}
+		
+		for (int i = 0; i < data.length; i++) {
+			data[i] = remap[data[i]];
+		}
+		
+	}
+		
+public ImagePlus makesubstack (ImagePlus in, int z, int t) {
+	ImageStack stack = in.getStack();
+	ImageStack stack2 = null;
+	int nt = in.getNFrames();
+	int nz = in.getNSlices();
+	boolean virtualStack = stack.isVirtual();
+	double min = in.getDisplayRangeMin();
+	double max = in.getDisplayRangeMax();
+	Roi roi = in.getRoi();
+	int currSlice = t*nz+z+1;
+		ImageProcessor ip2 = stack.getProcessor(currSlice);
+		ip2.setRoi(roi);
+		ip2 = ip2.crop();
+		if (stack2==null)
+			stack2 = new ImageStack(ip2.getWidth(), ip2.getHeight());
+		stack2.addSlice(stack.getSliceLabel(currSlice), ip2);
+
+	
+	
+
+	in.setStack(stack);
 		
 	
-	// Gradient calculation in X
-		ImagePlus indx = in.duplicate();
-		ImageProcessor ipin = in.getProcessor();
-		ImageProcessor ipoutx = indx.getProcessor();
-		int Lx = (int)(2*Math.ceil(3*sigmax)+1);
-		int n = Lx-1-(Lx-1)/2;
-		double [][] gradientx = new double [Lx][Lx];
-		 	for (int x=0; x<Lx;x++) {
-		 		for (int y=0; y<Lx;y++) {
-		 gradientx[x][y]=-(2*(x-n)/Math.PI)*Math.exp(-(Math.pow(x-n, 2)+Math.pow(y-n, 2)));
-		 }
-		 }
-
-		 //Convolution with the filter
-		 for (int x=0; x<nx;x++) {
-		 for (int y=0; y<ny;y++) {
-		 double [][] b = getNeighborhood(in, x, y, Lx, Lx);
-		 double pixel = 0.0;
-		 for (int i=0; i<Lx; i++) {
-		 for(int j=0; j<Lx; j++) {
-		 pixel = pixel +gradientx[i][j]*b[i][j];
-		 }
-		 }
-		 ipoutx.putPixelValue(x, y, Math.abs(pixel));
-		 }
-		 }
-
-		// Gradient calculation in Y
-			ImagePlus indy = in.duplicate();
-			ImageProcessor ipouty = indy.getProcessor();
-			int Ly = (int)(2*Math.ceil(3*sigmay)+1);
-			n = Ly-1-(Ly-1)/2;
-			double [][] gradienty = new double [Ly][Ly];
-			 	for (int x=0; x<Ly;x++) {
-			 		for (int y=0; y<Ly;y++) {
-			 gradienty[x][y]=-(2*(y-n)/Math.PI)*Math.exp(-(Math.pow(y-n, 2)+Math.pow(x-n, 2)));
-			 }
-			 }
-
-			 //Convolution with the filter
-			 for (int x=0; x<nx;x++) {
-			 for (int y=0; y<ny;y++) {
-			 double [][] b = getNeighborhood(in, x, y, Ly, Ly);
-			 double pixel = 0.0;
-			 for (int i=0; i<Ly; i++) {
-			 for(int j=0; j<Ly; j++) {
-			 pixel = pixel + gradienty[i][j]*b[i][j];
-			 }
-			 }
-			 ipouty.putPixelValue(x, y, Math.abs(pixel));
-			 }
-			 }
-
-			 // Creation of the gradient map
-			 ImagePlus gradientmap = in.duplicate();
-			 ImagePlus orientmap = in.duplicate();
-			 ImageProcessor ipgrad = gradientmap.getProcessor();
-			 ImageProcessor iporient = orientmap.getProcessor();
-			 double pix = 0.0;
-			 double pixel = 0.0;
-			 for (int x=0; x<nx;x++) {
-				 for (int y=0; y<ny;y++) {
-					 pix = Math.sqrt(Math.pow(ipoutx.getPixelValue(x, y),2)+Math.pow(ipouty.getPixelValue(x, y),2));
-					 pixel = 128+ 2*255*Math.atan2(ipouty.getPixelValue(x,y), ipoutx.getPixelValue(x,y))/Math.PI;
-					 ipgrad.putPixelValue(x,y,pix);
-					 iporient.putPixelValue(x, y, pixel);
-				 }
-				 }
-			 gradientmap.show();
-			 orientmap.show();
-			 
-			 // Non maximum suppression
-			 ImagePlus maxsup = in.duplicate();
-			 ImageProcessor ipsup = maxsup.getProcessor();
-			 for (int x=0; x<nx;x++) {
-				 for (int y=0; y<ny;y++) {
-				 double[][] nbh = getNeighborhood(gradientmap, x,y, 3,3);
-				 	pixel = ipgrad.getPixelValue(x, y);
-				 	for (int i = 0; i<3; i++) {
-				 		for (int j=0; j<3; j++) {
-				 			if (nbh [j][i] > pixel) {
-				 				ipsup.putPixelValue(x, y, 0);
-				 			}
-				 			
-				 		}
-				 	}
-				 }
-				 }
-			 maxsup.show();
-	
-	}
-
-public double[][] getNeighborhood(ImagePlus in, int x, int y, int mx, int my) {
-	int nx = in.getWidth();
-	int ny= in.getHeight();
-	ImageProcessor ipin= in.getProcessor();
-	double neigh[][] = new double[mx][my];
-	int bx = neigh.length;
-	int by = neigh[0].length;
-	int bx2 = (bx - 1) / 2;
-	int by2 = (by - 1) / 2;
-	if (x >= bx2)
-		if (y >= by2)
-			if (x < nx - bx2 - 1)
-				if (y < ny - by2 - 1) {
-					//int index = (y - by2) * nx + (x - bx2);
-					for (int j = 0; j < by; j++) {
-						for (int i = 0; i < bx; i++) {
-							neigh[i][j] = ipin.getPixelValue(i+x-bx,j+y-by);
-						}
-						//index += (nx - bx);
-					}
-					return neigh;
-				}
-	int xt[] = new int[bx];
-	for (int k = 0; k < bx; k++) {
-		int xa = x + k - bx2;
-		int periodx = 2 * nx - 2;
-		while (xa < 0)
-			xa += periodx; // Periodize
-		while (xa >= nx) {
-			xa = periodx - xa; // Symmetrize
-			if (xa < 0)
-				xa = -xa;
-		}
-		xt[k] = xa;
-	}
-	int yt[] = new int[by];
-	for (int k = 0; k < by; k++) {
-		int ya = y + k - by2;
-		int periody = 2 * ny - 2;
-		while (ya < 0)
-			ya += periody; // Periodize
-		while (ya >= ny) {
-			ya = periody - ya; // Symmetrize
-			if (ya < 0)
-				ya = -ya;
-		}
-		yt[k] = ya;
-	}
-	
-	return neigh;
+	ImagePlus impSubstack = in.createImagePlus();
+	impSubstack.setStack("", stack2);
+	if (virtualStack)
+		impSubstack.setDisplayRange(min, max);
+	return impSubstack;
 }
-}
+
+
+
+	}
+	 
