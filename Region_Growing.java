@@ -1,6 +1,6 @@
 import java.awt.Polygon;
 import java.util.ArrayList;
-
+import java.lang.Math;
 
 import ij.IJ;
 import ij.ImagePlus;
@@ -11,6 +11,12 @@ import ij.process.ImageProcessor;
 
 
 public class Region_Growing implements PlugIn {
+	
+	public double sigmoid(double val, double middle, double zoom) {
+		
+		return 1 / (1 + Math.exp( (val - middle) / zoom ));
+		
+	}
 	
 	
 	public void run(String arg) {
@@ -37,9 +43,9 @@ public class Region_Growing implements PlugIn {
 		GenericDialog dlg = new GenericDialog("Region Growing");
 		
 		dlg.addNumericField("Max number of iterations", 100, 1);
-		dlg.addNumericField ("Tolerance", 20, 1);
-		dlg.addNumericField ("Threshold", 200, 1);
-		dlg.addNumericField ("Maximum distance", 100, 1);
+		dlg.addNumericField ("Max Mean Difference (graylevel)", 300, 1);
+		dlg.addNumericField ("Threshold (graylevel)", 4000, 1);
+		dlg.addNumericField ("Max Distance (um)", 100, 1);
 //		dlg.addNumericField ("Maximum Number of regions", 4, 1);
 		
 		dlg.showDialog();
@@ -48,11 +54,12 @@ public class Region_Growing implements PlugIn {
 		
 		int itermax = (int) dlg.getNextNumber();
 		double tol = dlg.getNextNumber();
-		double T = dlg.getNextNumber();
-		double distmax = dlg.getNextNumber();
+		double thr = dlg.getNextNumber();
+		double dis = dlg.getNextNumber();
+		dis = dis * dis;  // squared here to prevent slow square root in distance function
 //		int nr = (int) dlg.getNextNumber();
 		
-		IJ.log("Chosen parameters: tol=" + Double.toString(tol) + ", T=" + Double.toString(T) + ", d=" + Double.toString(distmax));;;
+		IJ.log("Chosen parameters: tol=" + Double.toString(tol) + ", T=" + Double.toString(thr) + ", d=" + Double.toString(dis));;;
 		
 		// --- ------------ ---
 		// --->OUTPUT IMAGE<---
@@ -133,10 +140,12 @@ public class Region_Growing implements PlugIn {
 					int z = (int) region.getPoint(p).getZ();
 				
 					// Get 26-connected neighbors
+//					IJ.log("Getting 26-connected neighbors.");
+					
 					// Loop over z first to optimize processor access
 					for (int o = - 1; o <= 1; o++) {
 						
-						if (z + o < 6 || z + o > 16)
+						if (z + o < 5 || z + o > 24)
 							continue;
 						
 						in.setPositionWithoutUpdate(1, z + o, frame);
@@ -145,63 +154,49 @@ public class Region_Growing implements PlugIn {
 						ImageProcessor timp = in.getProcessor();
 						ImageProcessor toup = areas.getProcessor();
 						
+						
+						// Loop over x and y neighbors subsequently
 						for (int m = - 1; m <= 1; m++)
 						for (int n = - 1; n <= 1; n++) {
-							
-	//						IJ.log("Getting 26-connected neighbors.");
-							
-							
-							// Using value = 0.0 as is it not used in Point3D::equals for comparison
-							if (region.overlaps(new Point3D(x + m, y + n, z + o, 0.0)))
-								continue;
-							
+											
 							// get comparison pixel
 							double pixel = timp.getPixelValue(x + m, y + n);
+							Point3D eval = new Point3D(x + m, y + n, z + o, pixel);
 							
-							// Check that newly evaluated pixel does not overlap with others
-							boolean overlaps = false;
+//							IJ.log("Evaluating pixel: " + eval.toString());
+//							IJ.log("Overlaps: " + Boolean.toString(toup.getPixelValue(x + m, y + n) != 0.0));
+//							IJ.log("Over threshold: " + Boolean.toString(pixel >= thr));
 							
-							for (int r = 0; r < regions.size(); r++) {
-								if (r != i) {
-									// Using value = 0.0 as is it not used in Point3D::equals for comparison
-									if (regions.get(r).overlaps(new Point3D(x, y, z, 0.0))) {
-										overlaps = true;
-										continue;
-									}	
-								}
-							}
+							/* HARD CONDITIONS 
+							 * (1) Check that newly evaluated pixel does not overlap with other regions
+							 *     |— done by checking value of output image (if black - not written upon)
+							 * (2) Check that pixel value is under user threshold
+							 */	
+							if (toup.getPixelValue(x + m, y + n) != 0.0 || pixel >= thr)
+								continue;
 							
-	//						IJ.log("Pixel value of " + new Point(x + m, y + n).toString() + ": " + Double.toString(pixel));
-	//						IJ.log("Overlaps: " + String.valueOf(overlaps));
-	//						IJ.log("Tolerance: " + String.valueOf(Math.abs(pixel - region.getMean()) < tol));
-	//						IJ.log("Threshold: " + String.valueOf(pixel < T));
-	//						IJ.log("Distance: " + String.valueOf(region.getDistanceToSeed(new Point(x, y)) < distmax));
-							
-							
-							/* Test conditions
-							 * (1) p is inside the image
-							 *  |— Not sure how this is handled TODO
-							 * (2) p doesn't overlap with another region
-							 * (3) | f(p) - region_mean | < tol
-							 * (4) f(p) < T
-							 * (5) dist(seed, p) < distmin 
-							 * 	|— Using value = 0.0 as is it not used in Point3D::equals for comparison
+							/* SOFT CONDITIONS
+							 * (1) Distance to seed
+							 * (2) Pixel value compared to region's mean value
 							 */
+							double cost = 0.2 * sigmoid(region.getDistanceToSeed(eval), dis, dis / 5.0) + 
+										  0.8 * sigmoid(Math.abs(pixel - region.getMean()), tol, tol / 5.0);
+	
+//							IJ.log("Tolerance: " + Double.toString(cut(Math.abs(pixel - region.getMean()) / tol)));
+//							IJ.log("Distance: " + Double.toString(cut(region.getDistanceToSeed(eval) / dis)));
+//							IJ.log("Cost: " + Double.toString(cost));
 							
-							if (!overlaps &&
-								Math.abs(pixel - region.getMean()) < tol &&
-								pixel < T &&
-								region.getDistanceToSeed(new Point3D(x, y, z, 0.0)) < distmax) {
+							
+							if (cost > 0.7) {
 								
 								nothingAdded = false;
 								
-								Point3D addition = new Point3D(x + m, y + n, z + o, pixel); 
+//								IJ.log("Point added: " + eval.toString());
 								
-								IJ.log("Point: " + addition.toString() + " added w/ value " + pixel);
-								
-								region.addPoint(addition);
+								region.addPoint(eval);
 								
 								oup.putPixelValue(x + m, y + n, 55 + (200.0 / regions.size()) * i);
+								
 							}
 						}
 					}

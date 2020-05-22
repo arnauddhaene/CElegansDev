@@ -46,7 +46,7 @@ public class Point3D implements java.io.Serializable {
 	}
 	
 	public String toString() {
-		return getClass().getName() + "[x=" + x + ", y=" + y + ", z=" + z + "]";	
+		return getClass().getName() + "[x=" + x + ", y=" + y + ", z=" + z + ", v=" + value + "]";	
 	}
 	
 	

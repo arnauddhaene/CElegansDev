@@ -6,6 +6,8 @@ public class Region3D {
 	
 	public ArrayList<Point3D> points;
 
+	private double mean;
+
 	public Region3D() {
 		
 		// Initialize with seed (0, 0)
@@ -20,6 +22,7 @@ public class Region3D {
 		// Add seed
 		this.seed = seed;
 		this.points.add(seed);
+		this.mean = seed.getValue();
 		
 	}
 	
@@ -50,29 +53,30 @@ public class Region3D {
 	}
 	
 	public void addPoint(Point3D point) {
+		
+		// Add to mean incrementally
+		double total = this.mean * this.points.size();
+		
 		this.points.add(point);
+		
+		total += point.getValue();
+		
+		this.mean = total / (double) this.points.size();
+		
 	}
 	
 	public double getDistanceToSeed(Point3D point) {
-		return Math.sqrt(
-				Math.pow(this.seed.getX() - point.getX(), 2) +
-				Math.pow(this.seed.getY() - point.getY(), 2) +
-				Math.pow(this.seed.getZ() - point.getZ(), 2));
+		
+		// x and y have 0.2752 um while z has 1 um
+		double d = 0.2752 * 0.2752;
+		
+		return  (this.seed.getX() - point.getX()) * (this.seed.getX() - point.getX()) / d +
+				(this.seed.getY() - point.getY()) * (this.seed.getY() - point.getY()) / d +
+				(this.seed.getZ() - point.getZ()) * (this.seed.getZ() - point.getZ());
 	}
 	
 	public double getMean() {
-		
-		double sum = 0;
-		
-		if(!this.points.isEmpty()) {
-			
-			for (Point3D pt : this.points) {
-				
-				sum += pt.getValue();
-			}
-			return sum / this.points.size();
-		}
-		return sum; 
+		return this.mean; 
 	}
 	
 	
