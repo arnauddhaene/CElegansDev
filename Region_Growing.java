@@ -145,7 +145,7 @@ public class Region_Growing implements PlugIn {
 					// Loop over z first to optimize processor access
 					for (int o = - 1; o <= 1; o++) {
 						
-						if (z + o < 5 || z + o > 24)
+						if (z + o < 0 || z + o > nz)
 							continue;
 						
 						in.setPositionWithoutUpdate(1, z + o, frame);
@@ -181,6 +181,10 @@ public class Region_Growing implements PlugIn {
 							 */
 							double cost = 0.2 * sigmoid(region.getDistanceToSeed(eval), dis, dis / 5.0) + 
 										  0.8 * sigmoid(Math.abs(pixel - region.getMean()), tol, tol / 5.0);
+							
+							// TODO check if edge in region of point w/ gradient
+							// |— take into account neigbourhood to prevent region holes
+							// |— agglomeration as a region
 	
 //							IJ.log("Tolerance: " + Double.toString(cut(Math.abs(pixel - region.getMean()) / tol)));
 //							IJ.log("Distance: " + Double.toString(cut(region.getDistanceToSeed(eval) / dis)));

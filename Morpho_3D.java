@@ -2,8 +2,9 @@
 
 import ij.IJ;
 import ij.ImagePlus;
-import ij.gui.GenericDialog;
-
+import ij.ImageStack;
+import ij.plugin.Filters3D;
+import ij.plugin.GaussianBlur3D;
 import ij.plugin.PlugIn;
 import ij.process.ImageProcessor;
 
@@ -12,9 +13,16 @@ public class Morpho_3D implements PlugIn {
 	
 	public void run(String arg) {
 		
-		ImagePlus in = IJ.getImage().duplicate();
+		ImagePlus input = IJ.getImage().duplicate();
 		
-		ImagePlus out = gaussian3D (in, 1.5, 1.5);
+		ImageStack is = input.getImageStack();
+		ImageStack iss = Filters3D.filter(is, 11, 2, 2, 2);
+		
+		ImagePlus in = new ImagePlus("in",  iss);
+		
+//		GaussianBlur3D.blur(input, 1.25, 1.25, 1.2);
+		
+//		ImagePlus out = gaussian3D (in, 1.5, 1.5);
 		
 		
 		//GenericDialog dlg = new GenericDialog("Morphological Operators Parameters");
@@ -24,7 +32,8 @@ public class Morpho_3D implements PlugIn {
 		//int size = (int) dlg.getNextNumber();
 		//boolean[][][] b = ball(size);
 		//ImagePlus out = close (in, b);
-		out.show();
+		
+		in.show();
 	
 	}
 	
