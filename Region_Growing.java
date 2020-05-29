@@ -6,6 +6,7 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.GenericDialog;
 import ij.gui.Roi;
+import ij.io.OpenDialog;
 import ij.plugin.PlugIn;
 import ij.process.ImageProcessor;
 
@@ -34,6 +35,11 @@ public class Region_Growing implements PlugIn {
 		int nt = in.getNFrames();
 		int nz = in.getNSlices();
 		int b = in.getBitDepth();
+		
+		// --- ----------- ---
+		// --->INPUT SHELL<---
+		// --- ----------- ---
+		ImagePlus shell =  IJ.openImage();
 		
 		// --- ------------ ---
 		// --->INPUT DIALOG<---
@@ -150,14 +156,19 @@ public class Region_Growing implements PlugIn {
 						
 						in.setPositionWithoutUpdate(1, z + o, frame);
 						areas.setPositionWithoutUpdate(1, z + o, 1);
+						shell.setPositionWithoutUpdate(1, z + o, frame);
 						
 						ImageProcessor timp = in.getProcessor();
 						ImageProcessor toup = areas.getProcessor();
+						ImageProcessor tshl = shell.getProcessor();
 						
 						
 						// Loop over x and y neighbors subsequently
 						for (int m = - 1; m <= 1; m++)
 						for (int n = - 1; n <= 1; n++) {
+							
+							if (tshl.getPixelValue(x + m, y + n) == 0.0) 
+								continue;
 											
 							// get comparison pixel
 							double pixel = timp.getPixelValue(x + m, y + n);

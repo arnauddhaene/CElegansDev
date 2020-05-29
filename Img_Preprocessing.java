@@ -18,7 +18,6 @@ import ij.ImagePlus;
  */
 
 
-
 public class Img_Preprocessing implements PlugIn {
 	
 		
@@ -70,7 +69,7 @@ public class Img_Preprocessing implements PlugIn {
 		
 		// Denoising the original image and saving the denoised image
 		IJ.log("Denoising...");
-		ImagePlus Denoise = median3D (in);
+		ImagePlus Denoise = median3D(in);
 		//GaussianBlur3D.blur(Denoise, 1.25, 1.25, 1.2);
 		IJ.saveAs(Denoise, "Tiff", dir +"/denoised2.tif");
 		Denoise.show();
@@ -81,22 +80,21 @@ public class Img_Preprocessing implements PlugIn {
 		ImagePlus Shell = shell (in);
 		IJ.saveAs(Shell, "Tiff", dir +"/shell2.tif");
 		Shell.show();
-		
-		
+
 		
 		// Canny-Edges detection 
 		IJ.log("Canny-Edges detection...");
 		ImagePlus CEdges = CannyEdges (in);
 		IJ.saveAs(CEdges, "Tiff", dir +"/edges2.tif");
 		CEdges.show();
-		IJ.log("All done !");
+		IJ.log("All done!");
 				
 				
 		
 	}
 		
 	
-	public  ImagePlus CannyEdges (ImagePlus in) {
+	public  ImagePlus CannyEdges(ImagePlus in) {
 		ImageStack output = new ImageStack();
 		if (!showDialog())
 			return in;
