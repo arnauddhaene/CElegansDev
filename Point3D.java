@@ -1,19 +1,21 @@
-
 public class Point3D implements java.io.Serializable {
 	
 	public int x;
 	public int y;
 	public int z;
+	public int t;
 	public double value;
+
 	
 	public Point3D() {
-		this(0, 0, 0, 0.0);
+		this(0, 0, 0, 0, 0.0);
 	}
 	
-	public Point3D(int x, int y, int z, double value) {
+	public Point3D(int x, int y, int z, int t, double value) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
+		this.t = t;
 		this.value = value;
 	}
 
@@ -28,6 +30,11 @@ public class Point3D implements java.io.Serializable {
 	public int getZ() {
 		return this.z;
 	}
+	
+	public int getT() {
+		return this.t;
+	}
+	
 	
 	public double getValue() {
 		return this.value;
@@ -46,7 +53,7 @@ public class Point3D implements java.io.Serializable {
 	}
 	
 	public String toString() {
-		return getClass().getName() + "[x=" + x + ", y=" + y + ", z=" + z + ", v=" + value + "]";	
+		return getClass().getName() + "[x=" + x + ", y=" + y + ", z=" + z + ", t=" + t + "]";	
 	}
 	
 	
