@@ -72,20 +72,22 @@ public class Img_Preprocessing implements PlugIn {
 		IJ.log("Denoising...");
 		ImagePlus Denoise = median3D (in);
 		//GaussianBlur3D.blur(Denoise, 1.25, 1.25, 1.2);
-		IJ.saveAs(Denoise, "Tiff", dir +"/denoised.tif");
+		IJ.saveAs(Denoise, "Tiff", dir +"/denoised2.tif");
+		Denoise.show();
 		
 				
 		// Detecting the shell of the embryo, creating a mask and saving it
 		IJ.log("Shell detection...");
-		ImagePlus Shell = shell (Denoise);
-		IJ.saveAs(Shell, "Tiff", dir +"/shell.tif");
-		Shell = null;
+		ImagePlus Shell = shell (in);
+		IJ.saveAs(Shell, "Tiff", dir +"/shell2.tif");
+		Shell.show();
+		
 		
 		
 		// Canny-Edges detection 
 		IJ.log("Canny-Edges detection...");
 		ImagePlus CEdges = CannyEdges (in);
-		IJ.saveAs(CEdges, "Tiff", dir +"/edges.tif");
+		IJ.saveAs(CEdges, "Tiff", dir +"/edges2.tif");
 		CEdges.show();
 		IJ.log("All done !");
 				
@@ -111,7 +113,7 @@ public class Img_Preprocessing implements PlugIn {
 		}
 		ImagePlus out = new ImagePlus();		
 		out.setStack("Edges", output);
-		out = HyperStackConverter.toHyperStack(out, 1, 27, 40, "Color");
+		out = HyperStackConverter.toHyperStack(out, 1, NSlices, NFrames, "Color");
 		return out;
 	}
 	
@@ -438,59 +440,32 @@ public class Img_Preprocessing implements PlugIn {
 	}
 	
 	public double[][][] neighborhood (ImagePlus in, int x, int y, int z, int t, int Lxy, int Lz){
-		double [][][] b = new double [Lxy][Lxy][Lz];
-		//Arrays.fill(b, 0);
+		double b [][][]  = new double [Lxy][Lxy][Lz];
 		int lxy= (Lxy-1)/2;
 		int lz= (Lz-1)/2;
 		
-		// Getting the neighborhood in the XYZ positions
-		if (z>lz && z<(NSlices-lz)) {
-			if (x>lxy && x<(width-lxy) && y>lxy && y<(height-lxy)) {
-				for (int i=0; i<Lxy; i++) {
-					for (int j=0; j<Lxy; j++) {
-						for (int k=0; k<Lz; k++) {
-							in.setPosition(1, z-lz+k, t);
-							ImageProcessor ip = in.getProcessor();
-							b[i][j][k] = ip.getPixelValue(x-lxy+i, y-lxy+j);
+		if (x>lxy && x<(width-lxy)) {
+			if( y>lxy && y<(height-lxy)) {
+			for (int i=0; i<Lxy; i++) {
+				for (int j=0; j<Lxy; j++) {
+					for (int k=0; k<Lz; k++) {
+						if ((z-lz+k)>0 && (z-lz+k)<=NSlices) {
+						in.setPosition(1,(z-lz+k), t);
+						ImageProcessor ip = in.getProcessor();
+						b[i][j][k] = ip.getPixelValue(x-lxy+i, y-lxy+j);
 						}
-					}
+						else {
+							b[i][j][k] = 0;
+						}
+					}					
 				}
 			}
-		}
-		// Dealing with the particular cases at edges in Z direction only as the edges in XY are not interesting
-		if (z<=lz) {
-			if (x>lxy && x<(width-lxy) && y>lxy && y<(width-lxy)) {
-				for (int i=0; i<Lxy; i++) {
-					for (int j=0; j<Lxy; j++) {
-						for (int k=0; k<Lz; k++) {
-							while(z-lz+k<0) {
-								b[i][j][k] = 0;
-							}
-							in.setPosition(1, z-lz+k, t);
-							ImageProcessor ip = in.getProcessor();
-							b[i][j][k] = ip.getPixelValue(x-lxy+i, y-lxy+j);
-						}
-					}}
 			}
-			
-			if (z>=(NSlices-lz)) {
-				if (x>lxy && x<(width-lxy) && y>lxy && y<(height-lxy)) {
-					for (int i=0; i<Lxy; i++) {
-						for (int j=0; j<Lxy; j++) {
-							for (int k=0; k<Lz; k++) {
-								while(z-lz+k<=NSlices) {
-									in.setPosition(1, z-lz+k, t);
-									ImageProcessor ip = in.getProcessor();
-									b[i][j][k] = ip.getPixelValue(x-lxy+i, y-lxy+j);
-								}
-								b[i][j][k]=0;
-							}
-						}}
-				}			
-		}}
-		
+		}		
 		return b;
-	}	
+	}
+	
+	
 
 	public boolean[][][] ball(int size) {
 		 boolean mask[][][] = new boolean[size][size][size];
@@ -516,10 +491,10 @@ public class Img_Preprocessing implements PlugIn {
 	public ImagePlus dilation (ImagePlus in, boolean mask[][][]) {
 		 int size = mask.length;
 		 ImagePlus output = IJ.createHyperStack("Out", width, height, 1, NSlices, NFrames, bitdepth);
-		 for (int t=0; t<NFrames; t++) {
+		 for (int t=1; t<=NFrames; t++) {
 			 for (int x=0; x<width; x++) {
 				 for (int y=0; y<height; y++) {
-					 for (int z=0; z<NSlices; z++) {
+					 for (int z=1; z<=NSlices; z++) {
 						 double [][][] block = neighborhood (in, x, y, z, t, size, size);
 						 double max = -Double.MAX_VALUE;
 						 for (int i=0; i<size; i++) {
@@ -533,21 +508,22 @@ public class Img_Preprocessing implements PlugIn {
 						 }
 						 output.setPosition(1,z,t);
 						 ImageProcessor ip = output.getProcessor();
-						 ip.putPixelValue(x,y,max);						 
-					 }
-				 }				 
+						 ip.putPixelValue(x,y,max);		
+						 }					 
+				 }					 
 			 }
-		 }
+			 IJ.log("Dilation frame "+ t);
+		}
 		 return output;
-	}	
+	}
 
 	public ImagePlus erosion(ImagePlus in, boolean mask[][][]) {
 		 int size = mask.length;
 		 ImagePlus output = IJ.createHyperStack("Out", width, height, 1, NSlices, NFrames, bitdepth);
-		 for (int t=0; t<NFrames; t++) {
+		 for (int t=1; t<=NFrames; t++) {
 			 for (int x=0; x<width; x++) {
 				 for (int y=0; y<height; y++) {
-					 for (int z=0; z<NSlices; z++) {
+					 for (int z=1; z<=NSlices; z++) {
 						 double [][][] block = neighborhood (in, x, y, z, t, size, size);
 						 double min = Double.MAX_VALUE;
 						 for (int i=0; i<size; i++) {
@@ -565,28 +541,25 @@ public class Img_Preprocessing implements PlugIn {
 					 }
 				 }				 
 			 }
+			 IJ.log("Erosion frame "+ t);
 		 }
 		 return output;
 	}
 
 	public ImagePlus close(ImagePlus in, boolean mask[][][]) {
-		 return erosion(dilation(in,mask),mask);
+		ImagePlus temp = dilation (in, mask);
+		ImagePlus out = erosion (temp, mask);
+		 return out;
 		 }
 
 	public ImagePlus shell (ImagePlus in ) {
-		ImageStack is = in.getImageStack();
-		ImageStack out = Filters3D.filter(is, 11 , 2,2,2);
-		ImagePlus temp = new ImagePlus("input",  out);
-		IJ.setAutoThreshold(temp, "Huang dark");
+		ImagePlus temp = median3D (in);
+		IJ.setAutoThreshold(temp, "Huang dark"); 
 		IJ.run(temp, "Convert to Mask", "method=Huang background=Dark calculate black");
-		ImageStack stack = temp.getImageStack();
-		stack = Filters3D.filter(stack, 11 , 2,2,2);
-		ImagePlus output = new ImagePlus("Shell",  stack);
+		ImagePlus output = median3D(temp);
 		output = HyperStackConverter.toHyperStack(output, 1, NSlices, NFrames, "Color");
-		output = close (output, ball(15));
-		is=null;
-		out=null;
-		stack=null;
+		IJ.log("Hyperstack created");
+		output = close (output, ball(3)); // Change the size of the closing to adapt the shape of the shell
 		return output;
 		
 	}
@@ -596,7 +569,6 @@ public class Img_Preprocessing implements PlugIn {
 		is = Filters3D.filter(is, 11 , 2,2,2);
 		ImagePlus output = new ImagePlus("Median3D", is);
 		output = HyperStackConverter.toHyperStack(output, 1, NSlices, NFrames, "Color");
-		is=null;
 		return output;
 	}
 
