@@ -103,7 +103,7 @@ public class Region_Growing implements PlugIn {
 		
 		for (int i = 0; i < nri; i++){
 			
-			Point3D seed = new Point3D(up.xpoints[i], up.ypoints[i], slice, imp.getPixelValue(up.xpoints[i], up.ypoints[i]));
+			Point3D seed = new Point3D(up.xpoints[i], up.ypoints[i], slice, frame, imp.getPixelValue(up.xpoints[i], up.ypoints[i]));
 			
 			IJ.log("Seed added: " + seed.toString());
 			
@@ -151,7 +151,7 @@ public class Region_Growing implements PlugIn {
 					// Loop over z first to optimize processor access
 					for (int o = - 1; o <= 1; o++) {
 						
-						if (z + o < 0 || z + o > nz)
+						if (z + o < 0 || z + o > 24)
 							continue;
 						
 						in.setPositionWithoutUpdate(1, z + o, frame);
@@ -172,7 +172,7 @@ public class Region_Growing implements PlugIn {
 											
 							// get comparison pixel
 							double pixel = timp.getPixelValue(x + m, y + n);
-							Point3D eval = new Point3D(x + m, y + n, z + o, pixel);
+							Point3D eval = new Point3D(x + m, y + n, z + o, frame, pixel);
 							
 //							IJ.log("Evaluating pixel: " + eval.toString());
 //							IJ.log("Overlaps: " + Boolean.toString(toup.getPixelValue(x + m, y + n) != 0.0));
@@ -182,8 +182,12 @@ public class Region_Growing implements PlugIn {
 							 * (1) Check that newly evaluated pixel does not overlap with other regions
 							 *     |— done by checking value of output image (if black - not written upon)
 							 * (2) Check that pixel value is under user threshold
+							 * (3) Check vicinity for growing spherically
+							 *     |- includes Star convex with respect to seed
 							 */	
-							if (toup.getPixelValue(x + m, y + n) != 0.0 || pixel >= thr)
+							int amount = (iter < itermax / 3) ? 1 : 9;
+							
+							if (toup.getPixelValue(x + m, y + n) != 0.0 || pixel >= thr || !region.isInVicinity(eval, amount))
 								continue;
 							
 							/* SOFT CONDITIONS
@@ -219,8 +223,10 @@ public class Region_Growing implements PlugIn {
 				
 			}
 			
-			if (nothingAdded)
+			if (nothingAdded) {
 				iter = 10000;
+				IJ.log("Nothing added. Stopping algorithm.");
+			}
 			
 			iter++;
 			
