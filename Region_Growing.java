@@ -48,11 +48,11 @@ public class Region_Growing implements PlugIn {
 		// Generate Dialog for Region Growing parameter input
 		GenericDialog dlg = new GenericDialog("Region Growing");
 		
-		dlg.addNumericField("Max number of iterations", 100, 1);
-		dlg.addNumericField ("Max Mean Difference (graylevel)", 300, 1);
-		dlg.addNumericField ("Threshold (graylevel)", 4000, 1);
-		dlg.addNumericField ("Max Distance (um)", 100, 1);
-//		dlg.addNumericField ("Maximum Number of regions", 4, 1);
+		dlg.addNumericField("Max number of iterations", 30, 1);
+		dlg.addNumericField("Max Mean Difference (graylevel)", 100, 1);
+		dlg.addNumericField("Threshold (graylevel)", 4000, 1);
+		dlg.addNumericField("Max Distance (um)", 25, 1);
+//		dlg.addNumericField("Maximum Number of regions", 4, 1);
 		
 		dlg.showDialog();
 		
@@ -167,6 +167,11 @@ public class Region_Growing implements PlugIn {
 						for (int m = - 1; m <= 1; m++)
 						for (int n = - 1; n <= 1; n++) {
 							
+							// Check 20-connected instead of 26-connected
+							if (Math.abs(m) + Math.abs(n) + Math.abs(o) == 3)
+								continue;
+							
+							// Check shell
 							if (tshl.getPixelValue(x + m, y + n) == 0.0) 
 								continue;
 											
@@ -175,17 +180,16 @@ public class Region_Growing implements PlugIn {
 							Point3D eval = new Point3D(x + m, y + n, z + o, frame, pixel);
 							
 //							IJ.log("Evaluating pixel: " + eval.toString());
-//							IJ.log("Overlaps: " + Boolean.toString(toup.getPixelValue(x + m, y + n) != 0.0));
-//							IJ.log("Over threshold: " + Boolean.toString(pixel >= thr));
 							
 							/* HARD CONDITIONS 
 							 * (1) Check that newly evaluated pixel does not overlap with other regions
 							 *     |— done by checking value of output image (if black - not written upon)
 							 * (2) Check that pixel value is under user threshold
 							 * (3) Check vicinity for growing spherically
-							 *     |- includes Star convex with respect to seed
+							 *     |- TODO includes Star convex with respect to seed
+							 * (4) Pixel is in shell (done 17 lines above)
 							 */	
-							int amount = (iter < itermax / 3) ? 1 : 9;
+							int amount = (iter < itermax / 3) ? 1 : 4;
 							
 							if (toup.getPixelValue(x + m, y + n) != 0.0 || pixel >= thr || !region.isInVicinity(eval, amount))
 								continue;
@@ -194,19 +198,17 @@ public class Region_Growing implements PlugIn {
 							 * (1) Distance to seed
 							 * (2) Pixel value compared to region's mean value
 							 */
-							double cost = 0.2 * sigmoid(region.getDistanceToSeed(eval), dis, dis / 5.0) + 
-										  0.8 * sigmoid(Math.abs(pixel - region.getMean()), tol, tol / 5.0);
+							double cost = 0.3 * sigmoid(region.getDistanceToSeed(eval), dis, dis / 5.0) + 
+										  0.7 * sigmoid(Math.abs(pixel - region.getMean()), tol, tol / 5.0);
 							
 							// TODO check if edge in region of point w/ gradient
 							// |— take into account neigbourhood to prevent region holes
-							// |— agglomeration as a region
+							// |— agglomeration as a region=
 	
-//							IJ.log("Tolerance: " + Double.toString(cut(Math.abs(pixel - region.getMean()) / tol)));
-//							IJ.log("Distance: " + Double.toString(cut(region.getDistanceToSeed(eval) / dis)));
 //							IJ.log("Cost: " + Double.toString(cost));
 							
 							
-							if (cost > 0.7) {
+							if (cost > 0.5) {
 								
 								nothingAdded = false;
 								

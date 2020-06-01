@@ -42,21 +42,26 @@ public class Region3D {
 	public boolean isInVicinity(Point3D point, int amount) {
 	
 		int number = 0;
-		int xdir = (int) Math.signum(this.getSeed().getX() - point.getX());
-		int ydir = (int) Math.signum(this.getSeed().getY() - point.getY());
-		int zdir = (int) Math.signum(this.getSeed().getZ() - point.getZ());
+		double xdiff = this.getSeed().getX() - point.getX();
+		double ydiff = this.getSeed().getY() - point.getY();
+		double zdiff = this.getSeed().getZ() - point.getZ();
+		
+		int xdir = (int) Math.signum(xdiff);
+		int ydir = (int) Math.signum(ydiff);
+		int zdir = (int) Math.signum(zdiff);
+
 		boolean radiallyConvex = false;
 		
 		for (int i = this.points.size() - 1; i  >=  0; i--) {		
 			if (point.getRasterDistanceFrom(this.points.get(i)) <= vicinity)
 				number++;
 			
-			if (this.points.get(i).getX() == point.getX() + xdir &&
-				this.points.get(i).getY() == point.getY() + ydir &&
-				this.points.get(i).getZ() == point.getZ() + zdir)
-				radiallyConvex = true;
+//			if (this.points.get(i).getX() == point.getX() + xdir &&
+//				this.points.get(i).getY() == point.getY() + ydir &&
+//				this.points.get(i).getZ() == point.getZ() + zdir)
+//					radiallyConvex = true;
 			
-			if (number >= amount && radiallyConvex)
+			if (number >= amount) // && radiallyConvex)
 				return true;
 		}
 		
