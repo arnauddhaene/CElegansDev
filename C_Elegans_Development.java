@@ -11,7 +11,7 @@ import ij.plugin.PlugIn;
 import ij.process.ImageProcessor;
 
 
-public class C_Elegans_Development implements PlugIn {
+public class Region_Growing implements PlugIn {
 	
 	public double sigmoid(double val, double middle, double zoom) {
 		
@@ -261,7 +261,7 @@ public class C_Elegans_Development implements PlugIn {
 			
 		}
 		areas = close (areas, frame, ball(3));
-		seeds = repositionSeeds (areas, in, seeds, slice, frame);
+		seeds = repositionSeeds (regions, in, seeds, slice, frame);
 		
 		
 		}
@@ -375,38 +375,16 @@ public class C_Elegans_Development implements PlugIn {
 }
 	
 	
-	public ArrayList<Point3D> repositionSeeds (ImagePlus areas, ImagePlus in, ArrayList<Point3D> seeds, int slice, int frame) { 
+	public ArrayList<Point3D> repositionSeeds (ArrayList<Region3D> regions, ImagePlus in, ArrayList<Point3D> seeds, int slice, int frame) { 
 		int nri = seeds.size();
-		int [] X = new int [nri];
-		int [] Y = new int [nri];
-		int [] number = new int [nri];
 		in.setPosition(1, slice, frame);
 		ImageProcessor ip = in.getProcessor();
-		areas.setPosition(1,slice, frame);
-		ImageProcessor ipareas = areas.getProcessor();
-		ArrayList<Double> color = new ArrayList<Double>();
-		for (int x=0; x<areas.getWidth(); x++) {
-			for (int y=0; y<areas.getHeight(); y++) {
-				double pixel = ipareas.getPixelValue(x, y);
-				if (pixel!=0) {
-					if (color.contains(pixel)==false) {
-						color.add(pixel);
-					}
-					int pos = color.indexOf(pixel);
-					X[pos]+=x;
-					Y[pos]+=y;
-					number[pos]+=1;
-				}
-				
-			}
-		}
 		for (int s=0; s<nri; s++) {
-			Point3D A = seeds.get(s);
-			double c = A.getColor();
-			int index = color.indexOf(c);
-			int x = X[index]/number[index];
-			int y = Y[index]/number[index];
-			Point3D C = new Point3D (x, y, slice, frame, c, ip.getPixelValue(x,y));
+			Region3D region = regions.get(s);
+			double color = seeds.get(s).getColor();
+			int x = region.getCentroid()[0];
+			int y = region.getCentroid()[1];
+			Point3D C = new Point3D (x, y, slice, frame, color, ip.getPixelValue(x,y));
 			seeds.set(s, C);
 		}
 	return seeds;	
