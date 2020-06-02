@@ -30,6 +30,7 @@ public class Region3D {
 		// Add seed
 		this.seed = seed;
 		this.points.add(seed);
+		this.addPoint(seed);
 		this.mean = seed.getValue();
 		this.Xcentroid = seed.getX();
 		this.Ycentroid = seed.getY();
