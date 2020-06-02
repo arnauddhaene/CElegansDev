@@ -382,8 +382,8 @@ public class C_Elegans_Development implements PlugIn {
 		for (int s=0; s<nri; s++) {
 			Region3D region = regions.get(s);
 			double color = seeds.get(s).getColor();
-			int x = region.getCentroid()[0];
-			int y = region.getCentroid()[1];
+			int x = region.getXCentroid();
+			int y = region.getYCentroid();
 			Point3D C = new Point3D (x, y, slice, frame, color, ip.getPixelValue(x,y));
 			seeds.set(s, C);
 		}
