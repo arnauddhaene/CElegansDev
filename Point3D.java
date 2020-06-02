@@ -4,18 +4,20 @@ public class Point3D implements java.io.Serializable {
 	public int y;
 	public int z;
 	public int t;
+	public double color;
 	public double value;
 
 
 	public Point3D() {
-		this(0, 0, 0, 0, 0.0);
+		this(0, 0, 0, 0, 0.0, 0.0);
 	}
 
-	public Point3D(int x, int y, int z, int t, double value) {
+	public Point3D(int x, int y, int z, int t, double color, double value) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
 		this.t = t;
+		this.color = color;
 		this.value = value;
 	}
 
@@ -33,6 +35,10 @@ public class Point3D implements java.io.Serializable {
 
 	public int getT() {
 		return this.t;
+	}
+	
+	public double getColor() {
+		return this.color;
 	}
 
 	public double getValue() {
