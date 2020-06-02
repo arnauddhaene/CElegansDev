@@ -11,7 +11,7 @@ import ij.plugin.PlugIn;
 import ij.process.ImageProcessor;
 
 
-public class Region_Growing implements PlugIn {
+public class C_Elegans_Development implements PlugIn {
 	
 	public double sigmoid(double val, double middle, double zoom) {
 		
