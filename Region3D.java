@@ -9,6 +9,8 @@ public class Region3D {
 	public ArrayList<Point3D> points;
 
 	private double mean;
+	public int [] centroid;
+	
 	
 	// Something to do with dimensionality ;)
 	static double vicinity = 3;
@@ -28,6 +30,9 @@ public class Region3D {
 		this.seed = seed;
 		this.points.add(seed);
 		this.mean = seed.getValue();
+		this.centroid[0] = seed.getX();
+		this.centroid[1] = seed.getY();
+		
 		
 	}
 	
@@ -100,6 +105,9 @@ public class Region3D {
 		
 		this.points.add(point);
 		
+		this.centroid[0] = (this.centroid[0]*(this.points.size()-1)+point.getX())/this.points.size();
+		this.centroid[1] = (this.centroid[1]*(this.points.size()-1)+point.getY())/this.points.size();
+		
 		total += point.getValue();
 		
 		this.mean = total / (double) this.points.size();
@@ -112,6 +120,10 @@ public class Region3D {
 	
 	public double getMean() {
 		return this.mean; 
+	}
+	
+	public int[] getCentroid() {
+		return this.centroid;
 	}
 	
 	
