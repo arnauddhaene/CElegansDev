@@ -78,7 +78,7 @@ public class C_Elegans_Development implements PlugIn {
 		
 		// Create output segmentation image
 		ImagePlus areas = IJ.createHyperStack("Regions", nx, ny, 1, nz, nt, b);
-		//areas.show();
+		areas.show();
 		
 		// Checking that the seeds are selected from the last time point		
 		int slice = in.getSlice();
@@ -260,15 +260,13 @@ public class C_Elegans_Development implements PlugIn {
 			iter++;
 			
 		}
-		IJ.log("Closing");
 		areas = close (areas, frame, ball(3));
 		seeds = repositionSeeds (regions, in, seeds, slice, frame);
 		
 		
 		}
 		
-		IJ.saveAs(areas, "Tiff", dir +"/areas.tif");
-		areas.show();
+		
 		// End of region growing
 		
 		
@@ -384,8 +382,8 @@ public class C_Elegans_Development implements PlugIn {
 		for (int s=0; s<nri; s++) {
 			Region3D region = regions.get(s);
 			double color = seeds.get(s).getColor();
-			int x = region.getXCentroid();
-			int y = region.getYCentroid();
+			int x = region.getCentroid()[0];
+			int y = region.getCentroid()[1];
 			Point3D C = new Point3D (x, y, slice, frame, color, ip.getPixelValue(x,y));
 			seeds.set(s, C);
 		}

@@ -3,84 +3,96 @@ import java.awt.Point;
 
 public class Region2D {
 	
-	public Point seed;
+	// Attributes
 	
-	public ArrayList<Point> points;
+	private Point2D seed;
 	
-	public ArrayList<Double> values;
+	private double mean;
 	
-	public ArrayList<Point> fronts;
-
-	public Region2D() {
-		
-		// Initialize with seed (0, 0)
-		this(new Point(), 0.0);
-	}
+	private ArrayList<Point2D> points;
 	
-	public Region2D(Point seed, double value) {
+	private double[] barycenter;
+	
+	static double vicinity = 2;
+	
+	// Constructor
+	
+	public Region2D(Point2D seed) {
 		
 		// Initialize
-		this.points = new ArrayList<Point>();
-		this.fronts = new ArrayList<Point>();
-		this.values = new ArrayList<Double>();
+		this.points = new ArrayList<Point2D>();
+		this.barycenter = new double[2];
 		
 		// Add seed
 		this.seed = seed;
-		this.points.add(seed);
-		this.values.add(value);
+		this.addPoint(seed);
 		
 	}
+	
+	// Methods
 	
 	public int size() {
 		return this.points.size();
 	}
 	
+	public boolean overlaps(Point2D other) {
+		return this.points.contains(other);
+	}
 	
-	public boolean overlaps(Region2D other) {
+	public Point2D getPoint(int index) {
+		return this.points.get(index);
+	}
+	
+	public double getDistanceToSeed(Point2D point) {
+		return this.seed.getDistanceFrom(point);
+	}
+	
+	public double getMean() {
+		return this.mean;
+	}
+	
+	public Point2D getSeed() {
+		return this.seed;
+	}
+	
+	public boolean isInVicinity(Point2D point, int amount) {
 		
-		for (int i = 0; i < this.size(); i++) {
+		int number = 0;
+		
+		for (int i = this.points.size() - 1; i  >=  0; i--) {		
+			if (point.getDistanceFrom(this.points.get(i)) <= vicinity)
+				number++;
 			
-			if (other.points.contains(this.points.get(i)))
+			if (number >= amount)
 				return true;
-			
 		}
 		
+//		IJ.log(point.toString() + " has " + number + " neighbors.");
+			
 		return false;
 		
 	}
 	
-	public boolean overlaps(Point other) {
-		return this.points.contains(other);
-	}
-	
-	public Point getPoint(int index) {
-		return this.points.get(index);
-	}
-	
-	public void addPoint(Point point, double value) {
+	public void addPoint(Point2D point) {
+		
+		// Add to mean incrementally
+		double total = this.mean * this.size();
+		
+		double xtot = (barycenter != null) ? this.barycenter[0] * this.size() : 0;
+		double ytot = (barycenter != null) ? this.barycenter[1] * this.size() : 0;
+		
 		this.points.add(point);
-		this.values.add(value);
-	}
-	
-	public double getDistanceToSeed(Point point) {
-		return Math.hypot(this.seed.getX() - point.getX(), this.seed.getY() - point.getY());
-	}
-	
-	public double getMean() {
 		
-		double sum = 0;
+		total += point.getValue();
+		xtot  += point.getX();
+		ytot  += point.getY();
 		
-		if(!this.values.isEmpty()) {
-			
-			for (double value : this.values) {
-				
-				sum += value;
-			}
-			return sum / this.values.size();
-		}
-		return sum; 
+		this.barycenter[0] = xtot / (double) this.size();
+		this.barycenter[1] = ytot / (double) this.size();
+		
+		this.mean = total / (double) this.size();
+		
 	}
-	
 	
 	
 }
