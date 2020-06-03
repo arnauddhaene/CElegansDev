@@ -39,7 +39,7 @@ public class Region_Growing implements PlugIn {
 		// --- ----------- ---
 		// --->INPUT SHELL<---
 		// --- ----------- ---
-		ImagePlus shell =  IJ.openImage();
+//		ImagePlus shell =  IJ.openImage();
 		
 		// --- ------------ ---
 		// --->INPUT DIALOG<---
@@ -144,23 +144,20 @@ public class Region_Growing implements PlugIn {
 					int x = (int) region.getPoint(p).getX();
 					int y = (int) region.getPoint(p).getY();
 					int z = (int) region.getPoint(p).getZ();
-				
-					// Get 26-connected neighbors
-//					IJ.log("Getting 26-connected neighbors.");
 					
 					// Loop over z first to optimize processor access
 					for (int o = - 1; o <= 1; o++) {
 						
-						if (z + o < 0 || z + o > 24)
+						if (z + o < 0 || z + o > nz)
 							continue;
 						
 						in.setPositionWithoutUpdate(1, z + o, frame);
 						areas.setPositionWithoutUpdate(1, z + o, 1);
-						shell.setPositionWithoutUpdate(1, z + o, frame);
+//						shell.setPositionWithoutUpdate(1, z + o, frame);
 						
 						ImageProcessor timp = in.getProcessor();
 						ImageProcessor toup = areas.getProcessor();
-						ImageProcessor tshl = shell.getProcessor();
+//						ImageProcessor tshl = shell.getProcessor();
 						
 						
 						// Loop over x and y neighbors subsequently
@@ -172,8 +169,8 @@ public class Region_Growing implements PlugIn {
 								continue;
 							
 							// Check shell
-							if (tshl.getPixelValue(x + m, y + n) == 0.0) 
-								continue;
+//							if (tshl.getPixelValue(x + m, y + n) == 0.0) 
+//								continue;
 											
 							// get comparison pixel
 							double pixel = timp.getPixelValue(x + m, y + n);
