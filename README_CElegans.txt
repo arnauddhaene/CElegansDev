@@ -43,6 +43,9 @@ The data set to analyze must be open in ImageJ before running any plugin.
 	3- Volume Calculation
 	Open the "Areas" image.
 	Run the volume calculation plugin in Plugins>BII_Project>Volume
+
+
+# Warning
 	
 	
 	
