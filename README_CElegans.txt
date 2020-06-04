@@ -34,18 +34,21 @@ The data set to analyze must be open in ImageJ before running any plugin.
 	In the first dialog box, select the original image to get the path 
 	to retrieve the intermediate images automatically saved by the preprocessing
 	plugin.
+	/!\ All images are then hidden to speed up the execution of the plugin. /!\
 	In the second dialog box select the following parameters :
-		Max number of iterations : 30
+		Max number of iterations : 40
 		Max Mean Difference (graylevel) : 100
 		Threshold (graylevel) : 4000
-		Max distance (µm) : 100
+		Max distance (µm) : 150
 
 	3- Volume Calculation
 	Open the "Areas" image.
 	Run the volume calculation plugin in Plugins>BII_Project>Volume
+	You will obtain both a graph and a table containing the volume of each cell
+	in function of time.
 
 
-# Warning
+
 	
 	
 	
