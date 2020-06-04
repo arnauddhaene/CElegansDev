@@ -16,6 +16,8 @@ Bioimage Informatics BIO-410, École Polytechnique Fédérale de Lausanne
 
 This repository contains the relevant code for the ImageJ PlugIn enabling users to approximate surface evolution of C. Elegans embryonic cells over time.
 
+A supplementary volume evolution PlugIn was also developed for the specified data. It uses 3D Region Growing and different Preprocessing and Seed Selection techniques that are more fitted for the 3D data. Please find it in the [3D branch](https://github.com/arnauddhaene/CElegansDev/tree/3D).
+
 ## Installation
 
 To install the PlugIn, one must simply download the entire repo and copy the files into a Java project. The Java project must have the relevant `plugins.config` and `build.xml` files as described in the earlier weeks of the **Bioimage Informatics BIO-410** course.
@@ -25,6 +27,8 @@ The following line must be added to the `plugins.config` file:
 ```
 Plugins>BII2020, "Region Growing 2D", Region_Growing2D("")
 ```
+
+Please note that the other files contain classes that make the PlugIn work. Please keep `Point2D.java`, `Region2D.java`, and `TimeFrame.java` in the same repo as `Region_Growing2D.java`.
 
 ## Usage
 
