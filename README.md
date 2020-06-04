@@ -74,8 +74,8 @@ The algorithm uses both both *hard* and *soft* conditions for region growth:
 
 * Pixel in output image is free (prevent region overlap)
 * Pixel neighbors are in Region
-  * 1st third of the iterations: 1 neighbor or more
-  * 2nd and 3rd thirds of the iterations: 3 neighbors or more
+  * 1st half of the iterations: 1 neighbor or more
+  * 2nd half of the iterations: 6 neighbors or more
 * Pixel value is below threshold
 
 ##### Soft conditions
