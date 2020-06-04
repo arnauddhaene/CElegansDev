@@ -15,7 +15,7 @@ import ij.process.ImageProcessor;
  *
  * Created by Arnaud Dhaene (EPFL), Audrey Menaesse (EPFL)
  */
-public class Region_Growing implements PlugIn {
+public class Region_Growing3D implements PlugIn {
 
 	public double sigmoid(double val, double middle, double zoom) {
 
