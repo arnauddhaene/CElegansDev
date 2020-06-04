@@ -56,6 +56,14 @@ The following steps are followed
 
 ### Region Growing
 
+The PlugIn takes 4 parameters as input. The exact use of these parameters is explained in **Hard conditions** and **Soft conditions**.
+
+1. **Max number of iterations** [unitless] (50 should be enough)
+2. **Max mean difference** [graylevel] (default = 175)
+3. **Threshold** [graylevel] (default = 4500 for the 16-bit image we were given as data)
+4. **Max distance** [pixels] (default = 35.0 considering the resolution of ~200x200 and the amount of cells in the embryo)
+
+
 The algorithm uses both both *hard* and *soft* conditions for region growth:
 
 ##### Hard conditions
