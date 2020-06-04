@@ -17,7 +17,9 @@ Bioimage Informatics BIO-410, École Polytechnique Fédérale de Lausanne
 
 This repository contains the relevant code for the ImageJ PlugIn enabling users to approximate surface evolution of C. Elegans embryonic cells over time.
 
-A supplementary volume evolution PlugIn was also developed for the specified data. It uses 3D Region Growing and different Preprocessing and Seed Selection techniques that are more fitted for the 3D data. Please find it in the [3D branch](https://github.com/arnauddhaene/CElegansDev/tree/3D).
+A supplementary volume evolution PlugIn was also developed for the specified data. It uses 3D Region Growing and different Preprocessing and Seed Selection techniques that are more fitted for the 3D data. Please find it in the [3D branch](https://github.com/arnauddhaene/CElegansDev/tree/master/3D).
+
+
 
 ## Installation
 
