@@ -73,14 +73,14 @@ public class Img_Preprocessing implements PlugIn {
 		IJ.log("Denoising...");
 		ImagePlus Denoise = median3D (in);
 		GaussianBlur3D.blur(Denoise, 1.25, 1.25, 1.2);
-		IJ.saveAs(Denoise, "Tiff", dir +"/denoisedg.tif");
+		IJ.saveAs(Denoise, "Tiff", dir +"/denoised.tif");
 		Denoise.show();
 		
 				
 		// Detecting the shell of the embryo, creating a mask and saving it
 		IJ.log("Shell detection...");
 		ImagePlus Shell = shell (in);
-		IJ.saveAs(Shell, "Tiff", dir +"/shellg.tif");
+		IJ.saveAs(Shell, "Tiff", dir +"/shell.tif");
 		Shell.show();
 		
 		
@@ -88,7 +88,7 @@ public class Img_Preprocessing implements PlugIn {
 		// Canny-Edges detection 
 		IJ.log("Canny-Edges detection...");
 		ImagePlus CEdges = CannyEdges (in);
-		IJ.saveAs(CEdges, "Tiff", dir +"/edgeg.tif");
+		IJ.saveAs(CEdges, "Tiff", dir +"/edges.tif");
 		CEdges.show();
 		IJ.log("All done !");
 				
