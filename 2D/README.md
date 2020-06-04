@@ -2,6 +2,7 @@
 
 ##### Course
 
+
 Bioimage Informatics BIO-410, École Polytechnique Fédérale de Lausanne
 
 ##### Professors
