@@ -2,14 +2,13 @@ public class Point2D implements java.io.Serializable {
 
 	public int x;
 	public int y;
-	public int z;
 	public int t;
 	public double color;
 	public double value;
 
 
 	public Point2D() {
-		this(0, 0, 0, 0.0, 0.0);
+		this(0, 0, 0, 0, 0.0);
 	}
 
 	public Point2D(int x, int y, int t, double color, double value) {
@@ -17,6 +16,13 @@ public class Point2D implements java.io.Serializable {
 		this.y = y;
 		this.t = t;
 		this.color = color;
+		this.value = value;
+	}
+	
+	public Point2D(int x, int y, int t, double value) {
+		this.x = x;
+		this.y = y;
+		this.t = t;
 		this.value = value;
 	}
 
@@ -27,7 +33,6 @@ public class Point2D implements java.io.Serializable {
 	public int getY() {
 		return this.y;
 	}
-
 	
 	public int getT() {
 		return this.t;
@@ -44,19 +49,10 @@ public class Point2D implements java.io.Serializable {
 	public double getDistanceFrom(Point2D other) {
 		// Doesn't include square root for optimization purposes
 		
-		// isotropy in the lateral view
-		// x and y have 0.2752 um 
-		double d = 0.2752 * 0.2752;
-		
-		return  ((this.getX() - other.getX()) * (this.getX() - other.getX()) * d +
-				(this.getY() - other.getY()) * (this.getY() - other.getY()) * d );
-				}
-	
-	public double getRasterDistanceFrom(Point2D other) {
-		return  ((this.getX() - other.getX()) * (this.getX() - other.getX()) +
-				(this.getY() - other.getY()) * (this.getY() - other.getY()));
+		return  (this.getX() - other.getX()) * (this.getX() - other.getX()) +
+				(this.getY() - other.getY()) * (this.getY() - other.getY());
 	}
-
+	
 	public boolean equals(Object obj) {
 
 		// We selectively do not take into account the value for comparison
@@ -72,5 +68,5 @@ public class Point2D implements java.io.Serializable {
 	public String toString() {
 		return getClass().getName() + "[x=" + x + ", y=" + y + ", t=" + t + "]";	
 	}
-}
 
+}

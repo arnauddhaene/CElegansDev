@@ -13,7 +13,7 @@ public class Region2D {
 	
 	private double[] barycenter;
 	
-	static double vicinity = 2;
+	static double vicinity = 3;
 	
 	// Constructor
 	
@@ -41,6 +41,14 @@ public class Region2D {
 	
 	public Point2D getPoint(int index) {
 		return this.points.get(index);
+	}
+	
+	public ArrayList<Point2D> getPoints() {
+		return this.points;
+	}
+	
+	public double[] getBarycenter() {
+		return this.barycenter;
 	}
 	
 	public double getDistanceToSeed(Point2D point) {
