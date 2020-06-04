@@ -571,7 +571,6 @@ public class Region_Growing2D implements PlugIn {
 			Plot plot = new Plot("Surface", "Time", "Cell volume");
 			for (int c = 0; c < cellnb; c++) {
 				
-				plot.add("-", rt.getColumnAsDoubles(c));
 				Random rand = new Random();
 				
 				float r = rand.nextFloat();
