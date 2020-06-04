@@ -149,7 +149,7 @@ public class Region_Growing2D implements PlugIn {
 	}
 	
 	/*!
-     * @brief Fetches seeds in frame based on previous seeds
+     * @brief Region Growing algorithm in 2D
      *
      * @param seeds
      * @param imp input image
@@ -173,7 +173,7 @@ public class Region_Growing2D implements PlugIn {
 	
 	
 	/*!
-     * @brief Fetches seeds in frame based on previous seeds
+     * @brief Region Growing algorithm in 2D
      *
      * @param seeds
      * @param imp input image
