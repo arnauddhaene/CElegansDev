@@ -124,7 +124,7 @@ public class Region_Growing2D implements PlugIn {
 
 			// Get seeds
 			seeds = (t == frame) ? initialSeeds : getNextSeeds(seeds, in,
-					timeFrames.get(timeFrames.size() - 1), slice, t, thr, true);
+					timeFrames.get(timeFrames.size() - 1), slice, t, thr);
 
 			IJ.log('\n' + "Frame " + t + ": " + seeds.size() + " seeds.");
 
@@ -386,7 +386,7 @@ public class Region_Growing2D implements PlugIn {
 				// Define min and max x values
 				double min = !byX ?
 							 Math.min(seeds.get(indexSeedOne).getX(), seeds.get(indexSeedTwo).getX()) :
-						     Math.min(seeds.get(indexSeedOne).getY(), seeds.get(indexSeedTwo).getY());
+						   Math.min(seeds.get(indexSeedOne).getY(), seeds.get(indexSeedTwo).getY());
 				double max = !byX ?
 						 	 Math.max(seeds.get(indexSeedOne).getX(), seeds.get(indexSeedTwo).getX()) :
 							 Math.max(seeds.get(indexSeedOne).getY(), seeds.get(indexSeedTwo).getY());
