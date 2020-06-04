@@ -26,7 +26,7 @@ into a Java project in an Eclipse Workspace. The Java project must have the rele
 The following lines must be added to the `plugins.config` file :
 ```
 Plugins>BII_Project, "Preprocessing", Img_Preprocessing("")
-Plugins>BII_Project, "Region Growing", Region_Growing("")
+Plugins>BII_Project, "Region Growing", Region_Growing3D("")
 Plugins>BII_Project, "Volume", Volume_Calc("")
 ```
 	
@@ -68,11 +68,15 @@ The values of the different parameters to use on the demo dataset is given in pa
 		- `Max distance (µm)` (150)
 
 	### Volume Calculation
-	1. Run the volume calculation plugin in Plugins>BII_Project>Volume
+	1. Open or select the `areas.tif` image
+	2. Run the volume calculation plugin in Plugins>BII_Project>Volume
 	You will obtain both a graph and a table containing the volume of each cell
 	in function of time.
-	2. Save the `Result Table` and the graph manually if needed.
+	3. Save the `Result Table` and the graph manually if needed.
 	
+## Warning
+As these PlugIns are automatically saving images or graphs, some errors can occur depending on the operating system you are using.
+In case of error, check the lines containing `IJ.saveAs(...);` and the directory in particular first.
 	
 ## PlugIns Framework
 
@@ -86,5 +90,37 @@ The values of the different parameters to use on the demo dataset is given in pa
 	- A gaussian smoothing
 	- The calculation of the gradients in X and Y directions
 	- A non-maximum suppression 
-		- Below the low threshold
+		- If the value of a given pixel is below the low threshold, it is considered as not an edge.
+		- If the value of the pixel is between the low and the high threshold, the pixel is considered as an edge only if it has an edge-pixel in its neighborhood.
+		- If the value of the pixel is above the high threshold it is considered as an edge.
+
+### Region Growing 
+1. Selection of the seed points
+
+The seed points for the region growing are manually selected on the central slice of the last frame using the multipoint tool of ImageJ.
+The algorithm then works backwards in time and merge the seed points of two daughter cells which are the result of mitosis. 
+The list of seed points for each time frame is defined recursively as follows :
+	- The seed points of the previous time frame are repositioned at the barycenter of their region
+	- This list of seed point is then cloned
+	- For each point one checks on the `edges.tif` file if a membrane is separating from the other ones. If not, the two non-separated seed points are merged in a new seed in the middle of the segment between the two old ones. 
+
+2. In order to make the regions grow, the algorithm uses both hard and soft conditions :
+	- Hard conditions
+		- Pixel is inside the embryo footprint of the image `shell.tif`
+		- Pixel in output image is free (prevent region overlap)
+		- Pixel neighbors are in Region
+		- First half of the iterations: needs 1 neighbor or more in the 26-connected neighborhood
+		- Second half of the iterations: needs 6 neighbors or more in the 26-connected neighborhood
+		- Pixel value is below threshold
 		
+	- Soft conditions
+	The soft conditions are utilised in a way that a cost function is used to give a probability of region adherence, which is a value between 0 and 1. The cost function consists of a weighted sum of sigmoid functions receiving the conditions explicited below as input, respectively. The weights were manually adjusted to get adequate results. Whilst not very robust, this method works very well for the project task at hand. The probability is thresholded by 0.5 to decide on adherence versus rejection.
+		-Pixel value versus Region mean
+		-Isotropic distance to Region seed
+3. The output image is automatically saved as `areas.tif` in the same folder as the preprocessed images
+
+### Volume Calculation
+This plugIn calculates the volume of each cell in function of time from the `areas.tif` image. As in this image, each cell is associated with a color, this plugins counts the total number of voxels for each color before multiplying it by the calibration of the original image.
+
+## Results 
+The results of this measurement is composed of an ImageJ Result Table and a plot which are displayed at the end of the procedure but not saved automatically.
