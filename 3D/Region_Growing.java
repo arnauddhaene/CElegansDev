@@ -11,7 +11,7 @@ import ij.plugin.PlugIn;
 import ij.process.ImageProcessor;
 
 
-public class C_Elegans_Development implements PlugIn {
+public class Region_Growing implements PlugIn {
 	
 	public double sigmoid(double val, double middle, double zoom) {
 		
@@ -82,7 +82,6 @@ public class C_Elegans_Development implements PlugIn {
 		
 		// Create output segmentation image
 		ImagePlus areas = IJ.createHyperStack("Regions", nx, ny, 1, nz, nt, b);
-		areas.show();
 		
 				
 		// Checking that the seeds are selected from the last time point		
@@ -117,11 +116,16 @@ public class C_Elegans_Development implements PlugIn {
 			areas.setPositionWithoutUpdate(1, slice, frame);			
 			ImageProcessor imp = in.getProcessor();
 			ImageProcessor oup = areas.getProcessor();
-			ArrayList<Region3D> regions = new ArrayList<Region3D>();		
+			ArrayList<Region3D> regions = new ArrayList<Region3D>();
 			
+		// --- ---------------------- ---
+		// --->SEEDS DETECTION/UPDATE<---
+		// --- ---------------------- ---
+						
 		if (frame == nt) {		
 			for (int i = 0; i < nri; i++){
 				double color = 55 + (200.0 / nri) * i;
+				// Reading the seed points from manual input
 				Point3D seed = new Point3D(up.xpoints[i], up.ypoints[i], slice, frame, color, imp.getPixelValue(up.xpoints[i], up.ypoints[i]));
 				seeds.add(seed);
 				IJ.log("Seed added: " + seed.toString());
@@ -135,6 +139,7 @@ public class C_Elegans_Development implements PlugIn {
 		}
 		} 
 		else {
+			// Deducing the seed points from the previously analyzed frame
 			seeds= getSeeds (edges,  in, seeds, slice, frame);
 			int nbr=seeds.size();
 			for (int i=0; i<nbr; i++) {
@@ -215,7 +220,7 @@ public class C_Elegans_Development implements PlugIn {
 							
 							/* HARD CONDITIONS 
 							 * (1) Check that newly evaluated pixel does not overlap with other regions
-							 *     |ï¿½ done by checking value of output image (if black - not written upon)
+							 *     |— done by checking value of output image (if black - not written upon)
 							 * (2) Check that pixel value is under user threshold
 							 * (3) Check vicinity for growing spherically
 							 *     |- TODO includes Star convex with respect to seed
@@ -234,8 +239,8 @@ public class C_Elegans_Development implements PlugIn {
 										  0.7 * sigmoid(Math.abs(pixel - region.getMean()), tol, tol / 5.0);
 							
 							// TODO check if edge in region of point w/ gradient
-							// |ï¿½ take into account neighborhood to prevent region holes
-							// |ï¿½ agglomeration as a region=
+							// |— take into account neighborhood to prevent region holes
+							// |— agglomeration as a region=
 	
 //							IJ.log("Cost: " + Double.toString(cost));
 							
@@ -265,16 +270,21 @@ public class C_Elegans_Development implements PlugIn {
 			iter++;
 			
 		}
+		
+		IJ.log("Closing");
 		areas = close (areas, frame, ball(3));
-		//seeds = repositionSeeds (regions, in, seeds, slice, frame);
+		
+		// Repositioning the seeds at the centroid of the central slice of their region
+		seeds = repositionSeeds (regions, in, seeds, slice, frame);
 		
 		
 		}
 		
+		IJ.saveAs(areas, "Tiff", dir +"/areas.tif");
 		
-		// End of region growing
-		
-		
+		in.show();
+		areas.show();
+				
 	}
 	
 	
@@ -287,7 +297,6 @@ public class C_Elegans_Development implements PlugIn {
 		ArrayList<Point3D> newSeeds =  (ArrayList<Point3D>) seeds.clone();
 		
 		int nri = seeds.size();
-		int ncolor = nri;
 		ArrayList<Integer> discarded = new ArrayList<Integer>();
 		for (int i=0; i<nri; i++) {
 			if (discarded.contains(i)==false) {
@@ -304,10 +313,9 @@ public class C_Elegans_Development implements PlugIn {
 			else {
 				Point3D A = seeds.get(i);
 				Point3D B = seeds.get(loc);
-				ncolor+=1;
 				int x = (int) Math.floor((A.getX() + B.getX())/2);
 				int y = (int) Math.floor((A.getY() + B.getY())/2);
-				double color = 55 + (200.0 / ncolor) * i;
+				double color = A.getColor() + 1;
 				Point3D C = new Point3D (x, y, slice, frame, color, ip.getPixelValue(x, y));
 				discarded.add(i);
 				discarded.add(loc);
@@ -317,8 +325,7 @@ public class C_Elegans_Development implements PlugIn {
 			}
 			}
 		}
-		// Creating a new list to only keep the isolated seeds 
-		int s= discarded.size();
+
 		ArrayList<Point3D> NS =  new ArrayList<Point3D>();
 		for (int k=0; k<newSeeds.size(); k++) {
 			if (discarded.contains(k)==false) {
@@ -412,8 +419,8 @@ public class C_Elegans_Development implements PlugIn {
 		for (int s=0; s<nri; s++) {
 			Region3D region = regions.get(s);
 			double color = seeds.get(s).getColor();
-			int x = region.getCentroid()[0];
-			int y = region.getCentroid()[1];
+			int x = region.getXCentroid();
+			int y = region.getYCentroid();
 			Point3D C = new Point3D (x, y, slice, frame, color, ip.getPixelValue(x,y));
 			seeds.set(s, C);
 		}
