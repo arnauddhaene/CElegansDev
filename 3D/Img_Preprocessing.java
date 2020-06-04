@@ -13,16 +13,17 @@ import ij.ImageStack;
 import ij.ImagePlus;
 
 /**
+ * Class implementing an image preprocessing plug-in for a Region Growing 3D
+ * algorithm.
+ *
+ * Created by Audrey Menaesse (EPFL)
  * The Canny-Edge detector part of this plug-in is largely inspired from Tom Gibara's algorithm available at :
  *  http://www.tomgibara.com/computer-vision/canny-edge-detector
  *
  */
-
-
-
 public class Img_Preprocessing implements PlugIn {
-	
-		
+
+
 	// Variables declaration
 	private int height;
 	private int width;
@@ -34,96 +35,96 @@ public class Img_Preprocessing implements PlugIn {
 	private int[] data;
 	private int[] magnitude;
 	private ImagePlus sourceImage;
-	
-	
+
+
 	private float gaussianKernelRadius;
 	private float lowThreshold ;
 	private float highThreshold;
 	private int gaussianKernelWidth;
 	private boolean contrastNormalized;
-	
+
 	private float[] xConv;
 	private float[] yConv;
 	private float[] xGradient;
 	private float[] yGradient;
-	
+
 	private final static float GAUSSIAN_CUT_OFF = 0.005f;
 	private final static float MAGNITUDE_SCALE = 100F;
 	private final static float MAGNITUDE_LIMIT = 1000F;
 	private final static int MAGNITUDE_MAX = (int) (MAGNITUDE_SCALE * MAGNITUDE_LIMIT);
 
 	public void run(String arg) {
-		
+
 		// Loading the original image
 		ImagePlus in = IJ.getImage().duplicate();
-		
+
 		// Getting the directory to store the intermediate images with the original one
-		OpenDialog od = new OpenDialog("Choose the original image", null);  
+		OpenDialog od = new OpenDialog("Choose the original image", null);
 	    dir = od.getDirectory();
-	    
+
 	    // Getting the dimensions of the images we are working with
 		width = in.getWidth();
 		height = in.getHeight();
 		NFrames = in.getNFrames();
 		NSlices = in.getNSlices();
 		bitdepth = in.getBitDepth();
-		
-		
+
+
 		// Denoising the original image and saving the denoised image
 		IJ.log("Denoising...");
 		ImagePlus Denoise = median3D (in);
 		GaussianBlur3D.blur(Denoise, 1.25, 1.25, 1.2);
 		IJ.saveAs(Denoise, "Tiff", dir +"/denoisedg.tif");
 		Denoise.show();
-		
-				
+
+
 		// Detecting the shell of the embryo, creating a mask and saving it
 		IJ.log("Shell detection...");
 		ImagePlus Shell = shell (in);
 		IJ.saveAs(Shell, "Tiff", dir +"/shellg.tif");
 		Shell.show();
-		
-		
-		
-		// Canny-Edges detection 
+
+
+
+		// Canny-Edges detection
 		IJ.log("Canny-Edges detection...");
 		ImagePlus CEdges = CannyEdges (in);
 		IJ.saveAs(CEdges, "Tiff", dir +"/edgeg.tif");
 		CEdges.show();
 		IJ.log("All done !");
-				
-				
-		
+
+
+
 	}
-		
-	
+
+
 	public  ImagePlus CannyEdges (ImagePlus in) {
 		ImageStack output = new ImageStack();
 		if (!showDialog())
 			return in;
 		for (int t=0; t<NFrames; t++) {
 			for (int z=0; z<NSlices; z++) {
-				ImagePlus sourceImage = makesubstack(in,z,t);					
+				ImagePlus sourceImage = makesubstack(in,z,t);
 				process(sourceImage);
 				ImageProcessor ip = new FloatProcessor(width, height, data);
-				ip = ip.convertToByte(false);				
+				ip = ip.convertToByte(false);
 				sourceImage.setProcessor(ip);
 				output.addSlice(ip);
 				//IJ.log("z="+z+"  t="+t);
 			}
 		}
-		ImagePlus out = new ImagePlus();		
+		ImagePlus out = new ImagePlus();
 		out.setStack("Edges", output);
 		out = HyperStackConverter.toHyperStack(out, 1, NSlices, NFrames, "Color");
 		return out;
 	}
-	
+
 	public ImagePlus process(ImagePlus imp) {
 		sourceImage = imp;
 		process();
 		return new ImagePlus("Edges_"+imp.getTitle());
 	}
-	
+
 	private boolean showDialog() {
 		GenericDialog gd = new GenericDialog("Canny Edge Detector");
 		gd.addNumericField("Gaussian kernel radius:", 2, 1);
@@ -147,12 +148,12 @@ public class Img_Preprocessing implements PlugIn {
 		contrastNormalized = gd.getNextBoolean();
 		return true;
 	}
-	
+
 	public void setLowThreshold(float threshold) {
 		if (threshold < 0) throw new IllegalArgumentException();
 		lowThreshold = threshold;
 	}
-	
+
 	public void setHighThreshold(float threshold) {
 		if (threshold < 0) throw new IllegalArgumentException();
 		highThreshold = threshold;
@@ -162,16 +163,16 @@ public class Img_Preprocessing implements PlugIn {
 		if (gaussianKernelWidth < 2) throw new IllegalArgumentException();
 		this.gaussianKernelWidth = gaussianKernelWidth;
 	}
-	
+
 	public void setGaussianKernelRadius(float gaussianKernelRadius) {
 		if (gaussianKernelRadius < 0.1f) throw new IllegalArgumentException();
 		this.gaussianKernelRadius = gaussianKernelRadius;
 	}
-	
+
 	public void setContrastNormalized(boolean contrastNormalized) {
 		this.contrastNormalized = contrastNormalized;
 	}
-	
+
 	public void process() {
 		picsize = width * height;
 		initArrays();
@@ -183,7 +184,7 @@ public class Img_Preprocessing implements PlugIn {
 		performHysteresis(low, high);
 		thresholdEdges();
 	}
-	
+
 	private void initArrays() {
 		if (data == null || picsize != data.length) {
 			data = new int[picsize];
@@ -195,9 +196,9 @@ public class Img_Preprocessing implements PlugIn {
 			yGradient = new float[picsize];
 		}
 	}
-	
+
 	private void computeGradients(float kernelRadius, int kernelWidth) {
-		
+
 		//generate the gaussian convolution masks
 		float kernel[] = new float[kernelWidth];
 		float diffKernel[] = new float[kernelWidth];
@@ -215,7 +216,7 @@ public class Img_Preprocessing implements PlugIn {
 		int maxX = width - (kwidth - 1);
 		int initY = width * (kwidth - 1);
 		int maxY = width * (height - (kwidth - 1));
-		
+
 		//perform convolution in x and y directions
 		for (int x = initX; x < maxX; x++) {
 			for (int y = initY; y < maxY; y += width) {
@@ -229,12 +230,12 @@ public class Img_Preprocessing implements PlugIn {
 					sumX += kernel[xOffset] * (data[index - xOffset] + data[index + xOffset]);
 					yOffset += width;
 					xOffset++;
-				}				
+				}
 				yConv[index] = sumY;
 				xConv[index] = sumX;
-			} 
+			}
 		}
-		
+
 		// Calculating the gradient in x and y directions
 		for (int x = initX; x < maxX; x++) {
 			for (int y = initY; y < maxY; y += width) {
@@ -242,10 +243,10 @@ public class Img_Preprocessing implements PlugIn {
 				int index = x + y;
 				for (int i = 1; i < kwidth; i++)
 					sum += diffKernel[i] * (yConv[index - i] - yConv[index + i]);
- 
+
 				xGradient[index] = sum;
 			}
- 
+
 		}
 		for (int x = kwidth; x < width - kwidth; x++) {
 			for (int y = initY; y < maxY; y += width) {
@@ -256,13 +257,13 @@ public class Img_Preprocessing implements PlugIn {
 					sum += diffKernel[i] * (xConv[index - yOffset] - xConv[index + yOffset]);
 					yOffset += width;
 				}
- 
+
 				yGradient[index] = sum;
 			}
- 
+
 		}
 
- 
+
 		initX = kwidth;
 		maxX = width - kwidth;
 		initY = width * kwidth;
@@ -278,7 +279,7 @@ public class Img_Preprocessing implements PlugIn {
 				int indexNE = indexN + 1;
 				int indexSW = indexS - 1;
 				int indexSE = indexS + 1;
-				
+
 				float xGrad = xGradient[index];
 				float yGrad = yGradient[index];
 				float gradMag = hypot(xGrad, yGrad);
@@ -293,11 +294,11 @@ public class Img_Preprocessing implements PlugIn {
 				float swMag = hypot(xGradient[indexSW], yGradient[indexSW]);
 				float nwMag = hypot(xGradient[indexNW], yGradient[indexNW]);
 				float tmp;
-				/* Here we perform the non-maximum suppression : we only keep 
-				 * a given point as an edge if it is a local maximum of the gradient 
+				/* Here we perform the non-maximum suppression : we only keep
+				 * a given point as an edge if it is a local maximum of the gradient
 				 * magnitude in its direction.
-				 * 
-				 * 
+				 *
+				 *
 				 * We need to break the comparison into a number of different
 				 * cases depending on the gradient direction so that the
 				 * appropriate values can be used. To avoid computing the
@@ -310,13 +311,13 @@ public class Img_Preprocessing implements PlugIn {
 				 * the geometry required to accurately interpolate the magnitude
 				 * of gradient function at those points has an identical
 				 * geometry (upto right-angled-rotation/reflection).
-				 * 
+				 *
 				 * When comparing the central gradient to the two interpolated
 				 * values, we avoid performing any divisions by multiplying both
 				 * sides of each inequality by the greater of the two partial
 				 * derivatives. The common comparand is stored in a temporary
 				 * variable (3) and reused in the mirror case (4).
-				 * 
+				 *
 				 */
 				if (xGrad * yGrad <= (float) 0 /*(1)*/
 					? Math.abs(xGrad) >= Math.abs(yGrad) /*(2)*/
@@ -338,7 +339,7 @@ public class Img_Preprocessing implements PlugIn {
 			}
 		}
 	}
-	
+
 	private float hypot(float x, float y) {
 		return (float) Math.hypot(x, y);
 	}
@@ -348,7 +349,7 @@ public class Img_Preprocessing implements PlugIn {
 	}
 
 	private void performHysteresis(int low, int high) {
-		Arrays.fill(data, 0); 
+		Arrays.fill(data, 0);
 		int offset = 0;
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
@@ -365,13 +366,13 @@ public class Img_Preprocessing implements PlugIn {
 		int x2 = x1 == width - 1 ? x1 : x1 + 1;
 		int y0 = y1 == 0 ? y1 : y1 - 1;
 		int y2 = y1 == height -1 ? y1 : y1 + 1;
-		
+
 		data[i1] = magnitude[i1];
 		for (int x = x0; x <= x2; x++) {
 			for (int y = y0; y <= y2; y++) {
 				int i2 = x + y * width;
 				if ((y != y1 || x != x1)
-					&& data[i2] == 0 
+					&& data[i2] == 0
 					&& magnitude[i2] >= threshold) {
 					follow(x, y, i2, threshold);
 					return;
@@ -386,7 +387,7 @@ public class Img_Preprocessing implements PlugIn {
 			}
 	}
 
-	
+
 	private void readLuminance() {
 		ImageProcessor ip = sourceImage.getProcessor();
 		ip = ip.convertToByte(true);
@@ -409,10 +410,10 @@ public class Img_Preprocessing implements PlugIn {
 				remap[k] = i;
 			}
 			j = target;
-		}		
+		}
 		for (int i = 0; i < data.length; i++) {
 			data[i] = remap[data[i]];
-		}		
+		}
 	}
 
 	public ImagePlus makesubstack (ImagePlus in, int z, int t) {
@@ -429,19 +430,19 @@ public class Img_Preprocessing implements PlugIn {
 			if (stack2==null)
 				stack2 = new ImageStack(width, height);
 			stack2.addSlice(stack.getSliceLabel(currSlice), ip2);
-			in.setStack(stack);		
+			in.setStack(stack);
 		ImagePlus impSubstack = in.createImagePlus();
 		impSubstack.setStack("", stack2);
 		if (virtualStack)
 			impSubstack.setDisplayRange(min, max);
 		return impSubstack;
 	}
-	
+
 	public double[][][] neighborhood (ImagePlus in, int x, int y, int z, int t, int Lxy, int Lz){
 		double b [][][]  = new double [Lxy][Lxy][Lz];
 		int lxy= (Lxy-1)/2;
 		int lz= (Lz-1)/2;
-		
+
 		if (x>lxy && x<(width-lxy)) {
 			if( y>lxy && y<(height-lxy)) {
 			for (int i=0; i<Lxy; i++) {
@@ -455,15 +456,15 @@ public class Img_Preprocessing implements PlugIn {
 						else {
 							b[i][j][k] = 0;
 						}
-					}					
+					}
 				}
 			}
 			}
-		}		
+		}
 		return b;
 	}
-	
-	
+
+
 
 	public boolean[][][] ball(int size) {
 		 boolean mask[][][] = new boolean[size][size][size];
@@ -480,12 +481,12 @@ public class Img_Preprocessing implements PlugIn {
 					else {
 						mask[i][j][k]=false;
 					}
-				 }				 
+				 }
 			 }
 		 }
 		 return mask;
 	}
-	
+
 	public ImagePlus dilation (ImagePlus in, boolean mask[][][]) {
 		 int size = mask.length;
 		 ImagePlus output = IJ.createHyperStack("Out", width, height, 1, NSlices, NFrames, bitdepth);
@@ -506,9 +507,9 @@ public class Img_Preprocessing implements PlugIn {
 						 }
 						 output.setPosition(1,z,t);
 						 ImageProcessor ip = output.getProcessor();
-						 ip.putPixelValue(x,y,max);		
-						 }					 
-				 }					 
+						 ip.putPixelValue(x,y,max);
+						 }
+				 }
 			 }
 			 IJ.log("Dilation frame "+ t);
 		}
@@ -535,9 +536,9 @@ public class Img_Preprocessing implements PlugIn {
 						 }
 						 output.setPosition(1,z,t);
 						 ImageProcessor ip = output.getProcessor();
-						 ip.putPixelValue(x,y,min);	
+						 ip.putPixelValue(x,y,min);
 					 }
-				 }				 
+				 }
 			 }
 			 IJ.log("Erosion frame "+ t);
 		 }
@@ -552,16 +553,16 @@ public class Img_Preprocessing implements PlugIn {
 
 	public ImagePlus shell (ImagePlus in ) {
 		ImagePlus temp = median3D (in);
-		IJ.setAutoThreshold(temp, "Huang dark"); 
+		IJ.setAutoThreshold(temp, "Huang dark");
 		IJ.run(temp, "Convert to Mask", "method=Huang background=Dark calculate black");
 		ImagePlus output = median3D(temp);
 		output = HyperStackConverter.toHyperStack(output, 1, NSlices, NFrames, "Color");
 		IJ.log("Hyperstack created");
 		output = close (output, ball(3)); // Change the size of the closing to adapt the shape of the shell
 		return output;
-		
+
 	}
-	
+
 	public ImagePlus median3D (ImagePlus in) {
 		ImageStack is = in.getImageStack();
 		is = Filters3D.filter(is, 11 , 2,2,2);

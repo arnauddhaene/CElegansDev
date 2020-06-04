@@ -1,3 +1,8 @@
+/**
+ * Class representing a point in 3D
+ *
+ * Created by Arnaud Dhaene (EPFL), Audrey Menaesse (EPFL)
+ */
 public class Point3D implements java.io.Serializable {
 
 	public int x;
@@ -36,7 +41,7 @@ public class Point3D implements java.io.Serializable {
 	public int getT() {
 		return this.t;
 	}
-	
+
 	public double getColor() {
 		return this.color;
 	}
@@ -44,19 +49,19 @@ public class Point3D implements java.io.Serializable {
 	public double getValue() {
 		return this.value;
 	}
-	
+
 	public double getDistanceFrom(Point3D other) {
 		// Doesn't include square root for optimization purposes
-		
+
 		// isotropy in the lateral view
 		// x and y have 0.2752 um while z has 1 um
 		double d = 0.2752 * 0.2752;
-		
+
 		return  (this.getX() - other.getX()) * (this.getX() - other.getX()) * d +
 				(this.getY() - other.getY()) * (this.getY() - other.getY()) * d +
 				(this.getZ() - other.getZ()) * (this.getZ() - other.getZ());
 	}
-	
+
 	public double getRasterDistanceFrom(Point3D other) {
 		return  (this.getX() - other.getX()) * (this.getX() - other.getX()) +
 				(this.getY() - other.getY()) * (this.getY() - other.getY()) +
@@ -76,7 +81,7 @@ public class Point3D implements java.io.Serializable {
 	}
 
 	public String toString() {
-		return getClass().getName() + "[x=" + x + ", y=" + y + ", z=" + z + ", t=" + t + "]";	
+		return getClass().getName() + "[x=" + x + ", y=" + y + ", z=" + z + ", t=" + t + "]";
 	}
 
 }
