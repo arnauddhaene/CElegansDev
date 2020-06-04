@@ -21,10 +21,7 @@ cells over time from a 4D image Hyperstack.
 ## Installation
 To install these PlugIns, one must download the entire repository and copy the files 
 into a Java project in an Eclipse Workspace. The Java project must have the relevant 
->plugins.config 
-and
->build.xml 
-files as described in the earlier weeks of the 
+`plugins.config` and `build.xml` files as described in the earlier weeks of the 
 **Bioimage Informatics BIO-410** course.
 
 The following lines must be added to the 'plugins.config' file :
