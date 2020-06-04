@@ -82,6 +82,7 @@ public class C_Elegans_Development implements PlugIn {
 		
 		// Create output segmentation image
 		ImagePlus areas = IJ.createHyperStack("Regions", nx, ny, 1, nz, nt, b);
+		areas.show();
 		
 				
 		// Checking that the seeds are selected from the last time point		
@@ -214,7 +215,7 @@ public class C_Elegans_Development implements PlugIn {
 							
 							/* HARD CONDITIONS 
 							 * (1) Check that newly evaluated pixel does not overlap with other regions
-							 *     |— done by checking value of output image (if black - not written upon)
+							 *     |ï¿½ done by checking value of output image (if black - not written upon)
 							 * (2) Check that pixel value is under user threshold
 							 * (3) Check vicinity for growing spherically
 							 *     |- TODO includes Star convex with respect to seed
@@ -233,8 +234,8 @@ public class C_Elegans_Development implements PlugIn {
 										  0.7 * sigmoid(Math.abs(pixel - region.getMean()), tol, tol / 5.0);
 							
 							// TODO check if edge in region of point w/ gradient
-							// |— take into account neighborhood to prevent region holes
-							// |— agglomeration as a region=
+							// |ï¿½ take into account neighborhood to prevent region holes
+							// |ï¿½ agglomeration as a region=
 	
 //							IJ.log("Cost: " + Double.toString(cost));
 							
@@ -264,15 +265,13 @@ public class C_Elegans_Development implements PlugIn {
 			iter++;
 			
 		}
-		IJ.log("Closing");
 		areas = close (areas, frame, ball(3));
 		//seeds = repositionSeeds (regions, in, seeds, slice, frame);
 		
 		
 		}
 		
-		IJ.saveAs(areas, "Tiff", dir +"/areas.tif");
-		areas.show();
+		
 		// End of region growing
 		
 		
@@ -413,8 +412,8 @@ public class C_Elegans_Development implements PlugIn {
 		for (int s=0; s<nri; s++) {
 			Region3D region = regions.get(s);
 			double color = seeds.get(s).getColor();
-			int x = region.getXCentroid();
-			int y = region.getYCentroid();
+			int x = region.getCentroid()[0];
+			int y = region.getCentroid()[1];
 			Point3D C = new Point3D (x, y, slice, frame, color, ip.getPixelValue(x,y));
 			seeds.set(s, C);
 		}
