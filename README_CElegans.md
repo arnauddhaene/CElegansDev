@@ -1,13 +1,14 @@
 # Project 2 : C. Elegans Development
 
 **Course**
+<br/>;
 Bioimage Informatics BIO-410, École Polytechnique Fédérale de Lausanne
 
 **Professors**
 - Prof. Daniel Sage
 - Prof. Arne Seitz
 
-** Authors**
+** Authors **
 - Arnaud Dhaene, EPFL
 - Audrey Ménaësse, EPFL
 
