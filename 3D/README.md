@@ -25,11 +25,11 @@ into a Java project in an Eclipse Workspace. The Java project must have the rele
 **Bioimage Informatics BIO-410** course.
 
 The following lines must be added to the `plugins.config` file :
-`Plugins>BII_Project, "Preprocessing", Img_Preprocessing("")
+`Plugins>BII_Project, "Preprocessing", Img_Preprocessing("")`
 <br/>
- Plugins>BII_Project, "Region Growing", Region_Growing("")
-<br/>
- Plugins>BII_Project, "Volume", Volume_Calc("")`
+ `Plugins>BII_Project, "Region Growing", Region_Growing("")`
+ <br/>
+ `Plugins>BII_Project, "Volume", Volume_Calc("")`
 	
 
 ## Usage
