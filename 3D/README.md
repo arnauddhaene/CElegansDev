@@ -1,14 +1,13 @@
 # Project 2 : C. Elegans Development
 
-**Course**
-<br/>
+### Course
 Bioimage Informatics BIO-410, École Polytechnique Fédérale de Lausanne
 
-**Professors**
+### Professors
 - Prof. Daniel Sage
 - Prof. Arne Seitz
 
-**Authors**
+### Authors
 - Arnaud Dhaene, EPFL
 - Audrey Ménaësse, EPFL
 
@@ -25,12 +24,11 @@ into a Java project in an Eclipse Workspace. The Java project must have the rele
 **Bioimage Informatics BIO-410** course.
 
 The following lines must be added to the `plugins.config` file :
-<br/>
-`Plugins>BII_Project, "Preprocessing", Img_Preprocessing("")`
-<br/>
- `Plugins>BII_Project, "Region Growing", Region_Growing("")`
- <br/>
- `Plugins>BII_Project, "Volume", Volume_Calc("")`
+```
+Plugins>BII_Project, "Preprocessing", Img_Preprocessing("")
+Plugins>BII_Project, "Region Growing", Region_Growing("")
+Plugins>BII_Project, "Volume", Volume_Calc("")
+```
 	
 
 ## Usage
@@ -63,19 +61,24 @@ The values of the different parameters to use on the demo dataset is given in pa
 	5. In the first dialog box, select the original image to get the path 
 	to retrieve the intermediate images automatically saved by the preprocessing
 	plugin.
-<br/>
-	*All images are then hidden to speed up the execution of the plugin.*
-<br/>
 	6. In the second dialog box select the following parameters :
 		- `Max number of iterations` (40)
 		- `Max Mean Difference (graylevel)` (100)
 		- `Threshold (graylevel)` (4000)
 		- `Max distance (µm)` (150)
 
-### Volume Calculation
-1. Run the volume calculation plugin in Plugins>BII_Project>Volume
-You will obtain both a graph and a table containing the volume of each cell
-in function of time.
+	### Volume Calculation
+	1. Run the volume calculation plugin in Plugins>BII_Project>Volume
+	You will obtain both a graph and a table containing the volume of each cell
+	in function of time.
 	2. Save the `Result Table` and the graph manually if needed.
 	
 	
+## PlugIns Framework
+
+### Preprocessing
+1. The original image is denoised with a 2x2x2 3D median filter before a 1.25x1.25x1.2 3D Gaussian filter.
+2. A binary image of the footprint of the embryo in the image is created using :
+	- An ImageJ Huang thresholding on the denoised image
+	- A 2x2x2 3D median filter to reduce the salt and pepper noise
+	- A 3D closing of the image using a 3D ball structural element.
