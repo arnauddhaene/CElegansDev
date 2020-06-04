@@ -76,7 +76,7 @@ The values of the different parameters to use on the demo dataset is given in pa
 	
 ## Warning
 As these PlugIns are automatically saving images or graphs, some errors can occur depending on the operating system you are using.
-In case of error, check the lines containing `IJ.saveAs(...);` and the directory in particular first.
+In case of error, please check the lines containing `IJ.saveAs(...);` and the directory in particular first.
 	
 ## PlugIns Framework
 
