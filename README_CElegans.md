@@ -1,16 +1,29 @@
-# Presentation
+# Project 2 : C. Elegans Development
+
+**Course**
+Bioimage Informatics BIO-410, École Polytechnique Fédérale de Lausanne
+
+**Professors**
+- Prof. Daniel Sage
+- Prof. Arne Seitz
+
+** Authors**
+- Arnaud Dhaene, EPFL
+- Audrey Ménaësse, EPFL
+
+## Volume evolution during embryonic development
 The C-Elegans project is an ensemble of three different plugins and 
 two dedicated classes to calculate the volume of each cell during a 
 C-Elegan embryo development from a 4D image Hyperstack.
 
-# Installation
+## Installation
 These plugins and classes must be included in an Eclipse workspace 
 containing a plugins.config file with the following lines :
 	Plugins>BII_Project, "Preprocessing", Img_Preprocessing("")
 	Plugins>BII_Project, "CElegans", C_Elegans_Development("")
 	Plugins>BII_Project, "Volume", Volume_Calc("")
 
-# Usage
+## Usage
 The data set to analyze must be open in ImageJ before running any plugin.
 	1- Image Preprocessing
 	Run the preprocessing plugin in Plugins>BII_Project>Preprocessing
