@@ -9,8 +9,9 @@ public class Region3D {
 	public ArrayList<Point3D> points;
 
 	private double mean;
-	public int Xcentroid;
-	public int Ycentroid;
+	public double Xcentroid;
+	public double Ycentroid;
+	public int centralsize;
 	
 	
 	// Something to do with dimensionality ;)
@@ -29,11 +30,13 @@ public class Region3D {
 		
 		// Add seed
 		this.seed = seed;
-		this.addPoint(seed);
+		this.points.add(seed);
 		this.mean = seed.getValue();
-		this.Xcentroid = seed.getX();
-		this.Ycentroid = seed.getY();
+		this.Xcentroid = (double) seed.getX();
+		this.Ycentroid = (double) seed.getY();
+		this.centralsize = 1 ; 
 		this.addPoint(seed);
+		
 		
 	}
 	
@@ -106,9 +109,21 @@ public class Region3D {
 		
 		this.points.add(point);
 		
-		this.Xcentroid = (this.Xcentroid*(this.points.size()-1)+point.getX())/this.points.size();
-		this.Ycentroid = (this.Ycentroid*(this.points.size()-1)+point.getY())/this.points.size();
 		
+		
+		// Adjust the centroid only on the central slice
+		if (this.seed.getZ()== point.getZ()) {
+			double xtot = this.Xcentroid * this.centralsize;		
+			double ytot = this.Ycentroid * this.centralsize;	
+			xtot  += point.getX();
+			ytot  += point.getY();
+			this.centralsize +=1;
+			this.Xcentroid = xtot / (double) this.centralsize;
+			this.Ycentroid = ytot / (double) this.centralsize;
+		//this.Xcentroid = (int) (this.Xcentroid*this.centralsize+point.getX())/(this.centralsize +1);
+		//this.Ycentroid = (int) (this.Ycentroid*this.centralsize+point.getY())/(this.centralsize +1);
+		//this.centralsize+=1;
+		}
 		total += point.getValue();
 		
 		this.mean = total / (double) this.points.size();
@@ -124,11 +139,18 @@ public class Region3D {
 	}
 	
 	public int getXCentroid() {
-		return this.Xcentroid;
+		if ((this.Xcentroid - Math.floor(this.Xcentroid))<0.5){
+			return (int) Math.floor(this.Xcentroid);
+		}
+		return (int) Math.ceil(this.Xcentroid);
+		
 	}
 	
 	public int getYCentroid() {
-		return this.Ycentroid;
+		if ((this.Ycentroid - Math.floor(this.Ycentroid))<0.5){
+			return (int) Math.floor(this.Ycentroid);
+		}
+		return (int) Math.ceil(this.Ycentroid);
 	}
 	
 	

@@ -1,4 +1,5 @@
 import ij.plugin.Filters3D;
+import ij.plugin.GaussianBlur3D;
 import ij.plugin.HyperStackConverter;
 import ij.plugin.PlugIn;
 import ij.process.*;
@@ -16,6 +17,7 @@ import ij.ImagePlus;
  *  http://www.tomgibara.com/computer-vision/canny-edge-detector
  *
  */
+
 
 
 public class Img_Preprocessing implements PlugIn {
@@ -69,32 +71,33 @@ public class Img_Preprocessing implements PlugIn {
 		
 		// Denoising the original image and saving the denoised image
 		IJ.log("Denoising...");
-		ImagePlus Denoise = median3D(in);
-		//GaussianBlur3D.blur(Denoise, 1.25, 1.25, 1.2);
-		IJ.saveAs(Denoise, "Tiff", dir +"/denoised2.tif");
+		ImagePlus Denoise = median3D (in);
+		GaussianBlur3D.blur(Denoise, 1.25, 1.25, 1.2);
+		IJ.saveAs(Denoise, "Tiff", dir +"/denoisedg.tif");
 		Denoise.show();
 		
 				
 		// Detecting the shell of the embryo, creating a mask and saving it
 		IJ.log("Shell detection...");
 		ImagePlus Shell = shell (in);
-		IJ.saveAs(Shell, "Tiff", dir +"/shell2.tif");
+		IJ.saveAs(Shell, "Tiff", dir +"/shellg.tif");
 		Shell.show();
-
+		
+		
 		
 		// Canny-Edges detection 
 		IJ.log("Canny-Edges detection...");
 		ImagePlus CEdges = CannyEdges (in);
-		IJ.saveAs(CEdges, "Tiff", dir +"/edges2.tif");
+		IJ.saveAs(CEdges, "Tiff", dir +"/edgeg.tif");
 		CEdges.show();
-		IJ.log("All done!");
+		IJ.log("All done !");
 				
 				
 		
 	}
 		
 	
-	public  ImagePlus CannyEdges(ImagePlus in) {
+	public  ImagePlus CannyEdges (ImagePlus in) {
 		ImageStack output = new ImageStack();
 		if (!showDialog())
 			return in;
@@ -383,10 +386,7 @@ public class Img_Preprocessing implements PlugIn {
 			}
 	}
 
-	//private int luminance(float r, float g, float b) {
-		//return Math.round(0.333f * r + 0.333f * g + 0.333f * b);
-	//}
-
+	
 	private void readLuminance() {
 		ImageProcessor ip = sourceImage.getProcessor();
 		ip = ip.convertToByte(true);
