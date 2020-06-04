@@ -82,3 +82,9 @@ The values of the different parameters to use on the demo dataset is given in pa
 	- An ImageJ Huang thresholding on the denoised image
 	- A 2x2x2 3D median filter to reduce the salt and pepper noise
 	- A 3D closing of the image using a 3D ball structural element.
+3. A binary image of the membranes of the cells is created using a Canny Edge-detector according to the following steps :
+	- A gaussian smoothing
+	- The calculation of the gradients in X and Y directions
+	- A non-maximum suppression 
+		- Below the low threshold
+		
