@@ -28,6 +28,7 @@ public class C_Elegans_Development implements PlugIn {
 		
 		// Duplicate input image
 		ImagePlus in = IJ.getImage();
+		in.hide();
 		
 		// Get image dimensions 
 		int nx = in.getWidth();
@@ -41,10 +42,13 @@ public class C_Elegans_Development implements PlugIn {
 		// --- ----------------------------- ---
 		OpenDialog od = new OpenDialog("Choose the original image", null);  
 		String dir = od.getDirectory();
-		IJ.open(dir+"/edges.tif");
+		IJ.open(dir+"edges.tif");
 		ImagePlus edges = IJ.getImage();
-		IJ.open(dir+"/shell.tif");
+		edges.hide();
+		IJ.open(dir+"shell.tif");
 		ImagePlus shell = IJ.getImage();
+		shell.hide();
+		
 		
 		// --- ------------ ---
 		// --->INPUT DIALOG<---
@@ -78,8 +82,8 @@ public class C_Elegans_Development implements PlugIn {
 		
 		// Create output segmentation image
 		ImagePlus areas = IJ.createHyperStack("Regions", nx, ny, 1, nz, nt, b);
-		//areas.show();
 		
+				
 		// Checking that the seeds are selected from the last time point		
 		int slice = in.getSlice();
 		int frame = in.getFrame();
@@ -262,7 +266,7 @@ public class C_Elegans_Development implements PlugIn {
 		}
 		IJ.log("Closing");
 		areas = close (areas, frame, ball(3));
-		seeds = repositionSeeds (regions, in, seeds, slice, frame);
+		//seeds = repositionSeeds (regions, in, seeds, slice, frame);
 		
 		
 		}
@@ -335,37 +339,61 @@ public class C_Elegans_Development implements PlugIn {
 		for (int k=0; k<nri; k++) {
 			//Checking if the point has already been removed 
 			if (removed.contains(k)==false && k!=i) {
-				Point3D B = seeds.get(k);
-				
+				Point3D B = seeds.get(k);				
 				int dx = Math.abs(A.getX()-B.getX());
 				int dy = Math.abs(A.getY()-B.getY());
 				int lth = (int) Math.sqrt(dx*dx+dy*dy);
-		
 				double intensity = 0;
-		int x=Math.min(A.getX(), B.getX());
-		int y=Math.min(A.getY(), B.getY());
+				int xmin=Math.min(A.getX(), B.getX());
+				int ymin;
+				int xmax;
+				int ymax;
+				if (xmin==A.getX()) {
+					ymin = A.getY();
+					xmax = B.getX();
+					ymax = B.getY();
+				}
+				else{
+					ymin = B.getY();
+					xmax = A.getX();
+					ymax = A.getY();
+				}
+				boolean dypositive = true;
+				if((ymax-ymin)<0) {
+					dypositive = false;
+				}
 		
+				int x=xmin;
+				int y=ymin;
 		// Detecting membrane along the line between the 2 points
-		for (int n=0; n <lth; n++) {
+				for (int n=1; n <=lth; n++) {
 			
-			if (dx!=0) {
-			x = x + 1/dx ;
-			}
-			if(dy!=0) {
-			y = y + 1/dy;
-			}
-			intensity+= ipedges.getPixelValue(x, y);
-			intensity+= ipedges.getPixelValue(x, y-1);
-			intensity+= ipedges.getPixelValue(x, y+1);
-			intensity+= ipedges.getPixelValue(x-1, y);
-			intensity+= ipedges.getPixelValue(x-1, y-1);
-			intensity+= ipedges.getPixelValue(x-1, y+1);
-			intensity+= ipedges.getPixelValue(x+1, y);
-			intensity+= ipedges.getPixelValue(x+1, y-1);
-			intensity+= ipedges.getPixelValue(x+1, y+1);
-			}
+					if (dx!=0) {
+						x = xmin + n*dx/lth;
+						//x = (int) (xmin + Math.abs((n+1)*Math.cos(angle)/lth));
+					}
+					if(dy!=0) {
+						if (dypositive==true) {
+							y= ymin + n*dy/lth;
+							//y = (int) (ymin + Math.abs((n+1)*Math.sin(angle)/lth));
+						}
+						else {
+							y= ymin - n*dy/lth;
+							//y = (int) (ymin - Math.abs((n+1)*Math.sin(angle)/lth));
+						}
+					}
+					intensity+= ipedges.getPixelValue(x, y);
+					intensity+= ipedges.getPixelValue(x, y-1);
+					intensity+= ipedges.getPixelValue(x, y+1);
+					intensity+= ipedges.getPixelValue(x-1, y);
+					intensity+= ipedges.getPixelValue(x-1, y-1);
+					intensity+= ipedges.getPixelValue(x-1, y+1);
+					intensity+= ipedges.getPixelValue(x+1, y);
+					intensity+= ipedges.getPixelValue(x+1, y-1);
+					intensity+= ipedges.getPixelValue(x+1, y+1);
+				}
 		
-			if (intensity != 0) {
+			if (intensity == 0) {
 				loc=k;
 			}
 			
@@ -375,6 +403,7 @@ public class C_Elegans_Development implements PlugIn {
 	return loc; 
 	
 }
+	
 	
 	
 	public ArrayList<Point3D> repositionSeeds (ArrayList<Region3D> regions, ImagePlus in, ArrayList<Point3D> seeds, int slice, int frame) { 
